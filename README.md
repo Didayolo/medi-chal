@@ -1,4 +1,4 @@
-![Medi-chal](medi-chal_logo.png)
+<h1><img src="medi-chal_logo.png" width="210"></h1>
 
 ### Provide access to medical data through data generation and challenges
 
