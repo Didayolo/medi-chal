@@ -217,27 +217,26 @@ class AutoML():
 	def show_descriptors(self):
 		''' Show descriptors of the dataset '''
 		
-		test_set = len(self.data['X_test']) > 0 # TODO put in an attribute
-		data_df = self.get_data_as_df() # TODO put in an attribute ?
+		x_sets = ['X_train']
+		y_sets = ['y_train']
+		# If there is a test set
+		if(len(self.data['X_test']) > 0):
+			x_sets.append('X_test')
+			y_sets.append('y_test')
+			
+		data_df = self.get_data_as_df()
 		
 		print('Scatter plot matrix')
 		sns.set(style="ticks")
-		print('X train')
-		sns.pairplot(data_df['X_train'])
-		plt.show()
-		
-		if test_set: 
-			print('X test')
-			sns.pairplot(data_df['X_test'])
+		for x in x_sets:
+			print(x)
+			sns.pairplot(data_df[x])
 			plt.show()
 		
 		print('Classes distribution')
-		print('y train')
-		show_classes(data_df['y_train'])
-		
-		if test_set:
-			print('y train')
-			show_classes(data_df['y_test'])
+		for y in y_sets:
+			print(y)
+			show_classes(data_df[y])
 		
 		print('Hierarchical clustering heatmap')
 		row_method = 'average'
@@ -245,12 +244,28 @@ class AutoML():
 		row_metric = 'euclidean'#'cityblock' #cosine
 		column_metric = 'euclidean'
 		color_gradient = 'coolwarm'#'red_white_blue
-		print('X train')
-		heatmap(data_df['X_train'], row_method, column_method, row_metric, column_metric, color_gradient)
+		for x in x_sets:
+			print(x)
+			heatmap(data_df[x], row_method, column_method, row_metric, column_metric, color_gradient)
+			
+		print('Principal components analysis')
+		for i in range(len(x_sets)):
+			print(x_sets[i])
+			print(y_sets[i])
+			show_pca(data_df[x_sets[i]], data_df[y_sets[i]])
 		
-		if test_set:
-			print('X test')
-			heatmap(data_df['X_test'], row_method, column_method, row_metric, column_metric, color_gradient)
-		
+		print('Linear discriminant analysis')
+		for i in range(len(x_sets)):
+			nb_classes = 2 # TODO auto, get nb classes
+			if nb_classes > 2:
+				print(x_sets[i])
+				print(y_sets[i])
+				show_lda(data_df[x_sets[i]], data_df[y_sets[i]])
+			
+		print('T-distributed stochastic neighbor embedding')
+		for i in range(len(x_sets)):
+			print(x_sets[i])
+			print(y_sets[i])
+			show_tsne(data_df[x_sets[i]], data_df[y_sets[i]])
 		
 		

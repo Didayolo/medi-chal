@@ -1,3 +1,5 @@
+# Useful functions for computation and visualization of data descriptors
+
 # Imports
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -280,5 +282,58 @@ def heatmap(X, row_method,
     else:
         plt.rcParams['font.size'] = 8
 
+    plt.show()
+    
+    
+# TODO firstly compute and store PCA, LDA, etc.
+# Then we can use other descriptors and plots on it
+    
+def show_pca(X, y):
+    """ Perform and plot PCA """
+    
+    y = np.array(y).T[0]
+    target_names = ['zero', 'one'] # TODO
+    
+    pca = PCA(n_components=2)
+    X_r = pca.fit(X).transform(X)
+
+    print('Explained variance ratio (first two components): {}'.format(pca.explained_variance_ratio_))
+
+    for i, target_name in zip([0, 1], target_names):
+        plt.scatter(X_r[y == i, 0], X_r[y == i, 1], alpha=.8, lw=2, label=target_name)
+
+    plt.legend(loc='best', shadow=False, scatterpoints=1)
+    plt.title('PCA of dataset')
+    plt.show()
+    
+def show_lda(X, y):
+    """ Perform and plot LDA """
+
+    y = np.array(y).T[0]
+    target_names = ['zero', 'one'] # TODO
+    
+    lda = LinearDiscriminantAnalysis(n_components=2)
+    X_r = lda.fit(X, y).transform(X)
+
+    for i, target_name in zip([0, 1], target_names):
+        plt.scatter(X_r[y == i, 0], X_r[y == i, 1], alpha=.8, label=target_name)
+    
+    plt.legend(loc='best', shadow=False, scatterpoints=1)
+    plt.title('LDA of dataset')
+    plt.show()
+    
+def show_tsne(X, y):
+    """ Perform and plot T-SNE algorithm """
+
+    y = np.array(y).T[0]
+    target_names = ['zero', 'one'] # TODO
+    
+    X_embedded = TSNE(n_components=2).fit_transform(X)
+
+    for i, target_name in zip([0, 1], target_names):
+        plt.scatter(X_embedded[y == i, 0], X_embedded[y == i, 1], alpha=.8, lw=2, label=target_name) # color=color,
+
+    plt.legend(loc='best', shadow=False, scatterpoints=1)
+    plt.title('T-SNE of dataset')
     plt.show()
     
