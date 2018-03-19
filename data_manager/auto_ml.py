@@ -10,43 +10,52 @@ import seaborn as sns
 
 
 class AutoML():
-	def __init__(self, input_dir="", basename="", test_size=0, verbose=False): # test_size=None
-		self.basename = basename
+	def __init__(self, input_dir="", basename="", test_size=0, verbose=False):
 		if os.path.isdir(input_dir):
 			self.input_dir = input_dir
 		else:
 			raise OSError('Input directory {} does not exist.'.format(input_dir))
 
+		self.basename = basename
+		if os.path.exists(os.path.join(self.input_dir, basename + '_train.data')) or os.path.exists(os.path.join(self.input_dir, basename + '.data')):
+			self.basename = basename
+		else:
+			raise OSError('No .data files found')
+
 		self.info = dict()
-		self.init_info(os.path.join(self.input_dir, basename + '_public.info'))
-		self.init_type(os.path.join(self.input_dir, basename + '_feat.type'))
+		self.init_info(os.path.join(self.input_dir, self.basename + '_public.info'))
+		self.init_type(os.path.join(self.input_dir, self.basename + '_feat.type'))
 
 		self.feat_name = []
-		feat_name_file = os.path.join(input_dir, basename + '_feat.name')
+		feat_name_file = os.path.join(self.input_dir, self.basename + '_feat.name')
 		if os.path.exists(feat_name_file):
 			self.feat_name = self.load_name(feat_name_file)
 		
 		self.label_name = []
-		label_name_file = os.path.join(input_dir, basename + '_label.name')
+		label_name_file = os.path.join(self.input_dir, self.basename + '_label.name')
 		if os.path.exists(label_name_file):
 			self.label_name = self.load_name(label_name_file)
 
 		self.data = dict()
-		if os.path.exists(os.path.join(input_dir, basename + '_train.data')):
-			self.data['X_train'] = self.load_data(os.path.join(self.input_dir, basename + '_train.data'))
-			self.data['y_train'] = self.load_label(os.path.join(self.input_dir, basename + '_train.solution'))
-			self.data['X_test'] = self.load_data(os.path.join(self.input_dir, basename + '_test.data'))
-			self.data['y_test'] = self.load_label(os.path.join(self.input_dir, basename + '_test.solution'))
-		elif os.path.exists(os.path.join(input_dir, basename + '.data')):
-			X = self.load_data(os.path.join(input_dir, basename + '.data'))
-			y = self.load_label(os.path.join(input_dir, basename + '.solution'))
-			#if not test_size:
-			#	test_size = 0.6
+		self.init_data()
+
+	@classmethod
+	def from_dataframe(X, y):
+		return 0
+
+	def init_data(self):
+		if os.path.exists(os.path.join(self.input_dir, self.basename + '_train.data')):
+			self.data['X_train'] = self.load_data(os.path.join(self.input_dir, self.basename + '_train.data'))
+			self.data['y_train'] = self.load_label(os.path.join(self.input_dir, self.basename + '_train.solution'))
+			self.data['X_test'] = self.load_data(os.path.join(self.input_dir, self.basename + '_test.data'))
+			self.data['y_test'] = self.load_label(os.path.join(self.input_dir, self.basename + '_test.solution'))
+		elif os.path.exists(os.path.join(self.input_dir, self.basename + '.data')):
+			X = self.load_data(os.path.join(self.input_dir, self.basename + '.data'))
+			y = self.load_label(os.path.join(self.input_dir, self.basename + '.solution'))
 			self.data['X_train'], self.data['X_test'], self.data['y_train'], self.data['y_test'] = \
 				train_test_split(X, y, test_size=test_size)
 		else:
 			raise OSError('No .data files in {}.'.format(self.input_dir))
-			
 
 	def load_data(self, filepath):
 		return pd.read_csv(filepath, sep=' ', header=None).values
