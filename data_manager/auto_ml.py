@@ -1,7 +1,12 @@
+# Imports
+
 import numpy as np
 import os
 from sklearn.model_selection import train_test_split
 import pandas as pd
+from utilities import *
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 class AutoML():
@@ -41,6 +46,7 @@ class AutoML():
 				train_test_split(X, y, test_size=test_size)
 		else:
 			raise OSError('No .data files in {}.'.format(self.input_dir))
+			
 
 	def load_data(self, filepath):
 		return pd.read_csv(filepath, sep=' ', header=None).values
@@ -90,17 +96,16 @@ class AutoML():
 		return self.info
 		
 	def get_data(self):
-		''' Get data as a tuple (X_train, y_train, X_test, y_test) '''
-		return self.data['X_train'], self.data['y_train'], self.data['X_test'], self.data['y_test']
+		return self.data
 		
 	def get_data_as_df(self):
-		''' Get data in pandas DataFrame format as a tuple (X_train, y_train, X_test, y_test) '''
-		X_train, y_train, X_test, y_test = self.get_data()
-		X_train_df = pd.DataFrame(X_train, columns=self.feat_name)
-		y_train_df = pd.DataFrame(y_train, columns=self.label_name)
-		X_test_df = pd.DataFrame(X_test, columns=self.feat_name)
-		y_test_df = pd.DataFrame(y_test, columns=self.label_name)
-		return X_train_df, y_train_df, X_test_df, y_test_df
+		''' Get data as pandas DataFrame'''
+		data = dict()
+		data['X_train'] = pd.DataFrame(self.data['X_train'], columns=self.feat_name)
+		data['y_train'] = pd.DataFrame(self.data['y_train'], columns=self.label_name)
+		data['X_test'] = pd.DataFrame(self.data['X_test'], columns=self.feat_name)
+		data['y_test'] = pd.DataFrame(self.data['y_test'], columns=self.label_name)
+		return data
 		
 	def get_info(self):
 		return self.info
@@ -159,4 +164,44 @@ class AutoML():
 			- 
 		'''
 		pass
+		
+	def show_descriptors(self):
+		''' Show descriptors of the dataset '''
+		
+		test_set = len(self.data['X_test']) > 0 # TODO put in an attribute
+		data_df = self.get_data_as_df() # TODO put in an attribute
+		
+		print('Scatter plot matrix')
+		sns.set(style="ticks")
+		print('X train')
+		sns.pairplot(data_df['X_train'])
+		plt.show()
+		
+		if test_set: 
+			print('X test')
+			sns.pairplot(data_df['X_test'])
+			plt.show()
+		
+		print('Classes distribution')
+		print('y train')
+		show_classes(data_df['y_train'])
+		
+		if test_set:
+			print('y train')
+			show_classes(data_df['y_test'])
+		
+		print('Hierarchical clustering heatmap')
+		row_method = 'average'
+		column_method = 'single'
+		row_metric = 'euclidean'#'cityblock' #cosine
+		column_metric = 'euclidean'
+		color_gradient = 'coolwarm'#'red_white_blue
+		print('X train')
+		heatmap(data_df['X_train'], row_method, column_method, row_metric, column_metric, color_gradient)
+		
+		if test_set:
+			print('X test')
+			heatmap(data_df['X_test'], row_method, column_method, row_metric, column_metric, color_gradient)
+		
+		
 		
