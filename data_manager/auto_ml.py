@@ -1,5 +1,4 @@
 # Imports
-
 import numpy as np
 import os
 from sklearn.model_selection import train_test_split
@@ -17,7 +16,8 @@ class AutoML():
 			raise OSError('Input directory {} does not exist.'.format(input_dir))
 
 		self.basename = basename
-		if os.path.exists(os.path.join(self.input_dir, basename + '_train.data')) or os.path.exists(os.path.join(self.input_dir, basename + '.data')):
+		if os.path.exists(os.path.join(self.input_dir, basename + '_train.data')) or \
+			os.path.exists(os.path.join(self.input_dir, basename + '.data')):
 			self.basename = basename
 		else:
 			raise OSError('No .data files found')
@@ -40,8 +40,30 @@ class AutoML():
 		self.init_data()
 
 	@classmethod
-	def from_dataframe(X, y):
-		return 0
+	def from_df(cls, input_dir, basename, X, y):
+		feat_name = X.columns.values
+		feat_type = X.dtypes.values
+		label_name = y.columns.values
+		samples = X.values
+		labels = y.values
+
+		def write(filepath, X):
+			np.savetxt(filepath, X, fmt='%s')
+
+		path = input_dir + '/' + basename
+		write(path + "_feat.type", feat_type)
+		write(path + "_feat.name", feat_name)
+		write(path + ".data", samples)
+		write(path + "_label.name", label_name)
+		write(path + ".solution", labels)
+
+		return cls(input_dir, basename)
+
+	@classmethod
+	def from_csv(cls, input_dir, basename, X_path, y_path, **kwargs):
+		X = pd.read_csv(input_dir + '/' + X_path, **kwargs)
+		y = pd.read_csv(input_dir + '/' + y_path, **kwargs)
+		return cls.from_df(input_dir, basename, X, y)
 
 	def init_data(self):
 		if os.path.exists(os.path.join(self.input_dir, self.basename + '_train.data')):
@@ -65,7 +87,6 @@ class AutoML():
 		
 	def load_name(self, filepath):
 		return pd.read_csv(filepath, sep='\n', header=None).values
-
 	def init_type(self, filepath):
 		if os.path.exists(filepath):
 			self.info['feat_type'] = pd.read_csv(filepath, header=None).values.ravel()
@@ -82,33 +103,38 @@ class AutoML():
 			self.info = dict(zip(df[:, 0], df[:, 1]))
 		else:
 			print('No info file file found.')
-			self.info['usage'] = 'No info file'
-			self.info['name'] = self.basename
-			self.info['has_categorical'] = 0
-			self.info['has_missing'] = 0                            
-			self.get_type_problem(os.path.join(self.input_dir, self.basename + '_train.solution'))
-			# Finds the data format ('dense', 'sparse', or 'sparse_binary')   
-			self.get_format_data(os.path.join(self.input_dir, self.basename + '_train.data'))
-			
-			if self.info['task']=='regression':
-				self.info['metric'] = 'r2_metric'
-			else:
-				self.info['metric'] = 'auc_metric'     
-			self.info['feat_type'] = 'Mixed'  
 
-			self.get_nbr_features(
+			if os.path.exists(os.path.join(self.input_dir, self.basename + '.data')):
+				self.get_type_problem(os.path.join(self.input_dir, self.basename + '.solution'))
+				# Finds the data format ('dense', 'sparse', or 'sparse_binary')   
+				self.get_format_data(os.path.join(self.input_dir, self.basename + '.data'))
+
+				self.get_nbr_features(os.path.join(self.input_dir, self.basename + '.data'))
+			else:
+				self.get_type_problem(os.path.join(self.input_dir, self.basename + '_train.solution'))
+				# Finds the data format ('dense', 'sparse', or 'sparse_binary')   
+				self.get_format_data(os.path.join(self.input_dir, self.basename + '_train.data'))
+
+				self.get_nbr_features(
 				os.path.join(self.input_dir, self.basename + '_train.data'), 
 				os.path.join(self.input_dir, self.basename + '_test.data'), 
 				os.path.join(self.input_dir, self.basename + '_valid.data'))
 
+			self.info['usage'] = 'No info file'
+			self.info['name'] = self.basename
+			self.info['has_categorical'] = 0
+			self.info['has_missing'] = 0   
+			self.info['feat_type'] = 'Mixed'  
 			self.info['time_budget'] = 600
+			self.info['metric'] = 'r2_metric' if self.info['task'] == 'regression' else 'auc_metric'
+
 		return self.info
 		
 	def get_data(self):
 		return self.data
 		
 	def get_data_as_df(self):
-		''' Get data as pandas DataFrame'''
+		''' Get data as a dictionary of pandas DataFrame'''
 		data = dict()
 		data['X_train'] = pd.DataFrame(self.data['X_train'], columns=self.feat_name)
 		data['y_train'] = pd.DataFrame(self.data['y_train'], columns=self.label_name)
@@ -167,10 +193,24 @@ class AutoML():
 					self.info['task'] = 'multiclass.classification'        
 		return self.info['task']
 		
+	def get_processed_data(self):
+		''' Return preprocessed data as a dictionary or pandas DataFrame
+			- Missing values inputation
+			- +Inf and -Inf replaced by maximum and minimum
+			- One hot encoding for categorical variables
+		'''
+		processed_data = dict()
+		data_df = self.get_data_as_df()
+		
+		for k in list(data_df.keys()):
+			processed_data[k] = preprocessing(data_df[k])
+		
+		return processed_data
+		
 	def compute_descriptors(self):
 		''' Compute descriptors or the dataset
-			- 
-			- 
+			- Descriptor1
+			- Descriptor2...
 		'''
 		pass
 		
@@ -178,7 +218,7 @@ class AutoML():
 		''' Show descriptors of the dataset '''
 		
 		test_set = len(self.data['X_test']) > 0 # TODO put in an attribute
-		data_df = self.get_data_as_df() # TODO put in an attribute
+		data_df = self.get_data_as_df() # TODO put in an attribute ?
 		
 		print('Scatter plot matrix')
 		sns.set(style="ticks")

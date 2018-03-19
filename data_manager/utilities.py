@@ -23,14 +23,6 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.manifold import TSNE
 
 
-def show_classes(y):
-	''' Show classes distribution
-		Input : y is a pandas DataFrame
-	'''
-	for column in y.columns:
-		sns.distplot(y[column])
-		plt.show()
-
 def is_numeric(variable):
     ''' Test if a variable (DataFrame column) is numeric or categorical '''
     
@@ -73,6 +65,14 @@ def preprocessing(data):
 	        data = data.join(one_hot, lsuffix='l', rsuffix='r')
 	    
 	return data
+
+def show_classes(y):
+	''' Show classes distribution
+		Input : y is a pandas DataFrame
+	'''
+	for column in y.columns:
+		sns.distplot(y[column])
+		plt.show()
 	
 	
 def heatmap(X, row_method,
