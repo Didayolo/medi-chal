@@ -31,27 +31,23 @@ class AutoML():
 
 		self.data = dict()
 		self.init_data(test_size)
-		
+
 		self.descriptors = dict()
 		self.compute_descriptors()
 
 	@classmethod
-	def from_df(cls, input_dir, basename, X, y):
-		feat_name = X.columns.values
-		feat_type = X.dtypes.values
-		label_name = y.columns.values
-		samples = X.values
-		labels = y.values
-
+	def from_df(cls, input_dir, basename, X, y=None):
 		def write(filepath, X):
 			np.savetxt(filepath, X, fmt='%s')
 
 		path = input_dir + '/' + basename
-		write(path + "_feat.type", feat_type)
-		write(path + "_feat.name", feat_name)
-		write(path + ".data", samples)
-		write(path + "_label.name", label_name)
-		write(path + ".solution", labels)
+		write(path + ".data", X.values)
+		write(path + "_feat.name", X.columns.values)
+		write(path + "_feat.type", X.dtypes)
+
+		if y:
+			write(path + ".solution", y.values)
+			write(path + "_label.name", y.columns.values)
 
 		return cls(input_dir, basename)
 
