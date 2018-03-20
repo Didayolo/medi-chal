@@ -163,7 +163,7 @@ class AutoML():
 		''' Get the number of instances directly from data (in case we do not have an info file)'''
 		
 		self.info['train_num'] = self.data['X_train']
-		self.info['valid_num']
+		self.info['valid_num'] 
 		self.info['test_num']
 
 	def get_type_problem(self, solution_filename):
