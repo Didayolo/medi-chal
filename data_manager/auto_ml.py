@@ -103,6 +103,8 @@ class AutoML():
 		else:
 			print('No info file file found.')
 
+			self.get_nbr_instances()
+			
 			if os.path.exists(os.path.join(self.input_dir, self.basename + '.data')):
 				self.get_type_problem(os.path.join(self.input_dir, self.basename + '.solution'))
 				# Finds the data format ('dense', 'sparse', or 'sparse_binary')   
@@ -155,16 +157,15 @@ class AutoML():
 		if 'feat_num' not in self.info.keys():
 			self.get_format_data(filenames[0])
 			if self.info['format'] == 'dense':
-				data = pd.read_csv(filenames[0], sep=' ', header=None)
-				self.info['feat_num'] = data.shape[1]
+				self.info['feat_num'] = self.data['X_train'].shape[1]
 		return self.info['feat_num']
 		
 	def get_nbr_instances(self):
 		''' Get the number of instances directly from data (in case we do not have an info file)'''
-		
-		self.info['train_num'] = self.data['X_train']
-		self.info['valid_num'] 
-		self.info['test_num']
+		self.info['train_num'] = self.data['X_train'].shape[0]
+		#self.info['valid_num'] = self.data['X'].shape[0]
+		#self.info['test_num'] = self.data['X'].shape[0]
+		return self.info['train_num']
 
 	def get_type_problem(self, solution_filename):
 		''' Get the type of problem directly from the solution file (in case we do not have an info file) '''
