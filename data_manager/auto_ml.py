@@ -56,9 +56,12 @@ class AutoML():
 		return cls(input_dir, basename)
 
 	@classmethod
-	def from_csv(cls, input_dir, basename, X_path, y_path, **kwargs):
-		X = pd.read_csv(input_dir + '/' + X_path, **kwargs)
-		y = pd.read_csv(input_dir + '/' + y_path, **kwargs)
+	def from_csv(cls, input_dir, basename, X_path, y_path=None, X_header=None, y_header=None):
+		if os.path.exists(X_path):
+			X = pd.read_csv(input_dir + '/' + X_path, X_header) if os.path.exists(X_path) 
+		else:
+			raise OSError('{} file does not exist'.format(X_path))
+		y = pd.read_csv(input_dir + '/' + y_path, y_header) if os.path.exists(y_path) else None
 		return cls.from_df(input_dir, basename, X, y)
 
 	def init_data(self, test_size):
@@ -69,9 +72,12 @@ class AutoML():
 			self.data['y_test'] = self.load_label(os.path.join(self.input_dir, self.basename + '_test.solution'))
 		elif os.path.exists(os.path.join(self.input_dir, self.basename + '.data')):
 			X = self.load_data(os.path.join(self.input_dir, self.basename + '.data'))
-			y = self.load_label(os.path.join(self.input_dir, self.basename + '.solution'))
-			self.data['X_train'], self.data['X_test'], self.data['y_train'], self.data['y_test'] = \
-				train_test_split(X, y, test_size=test_size)
+			if os.path.exists(os.path.join(self.input_dir, self.basename + '.solution')):
+				y = self.load_label(os.path.join(self.input_dir, self.basename + '.solution'))
+				self.data['X_train'], self.data['X_test'], self.data['y_train'], self.data['y_test'] = \
+					train_test_split(X, y, test_size=test_size)
+			else:
+				self.data['X_train'] = X
 		else:
 			raise OSError('No .data files in {}.'.format(self.input_dir))
 
