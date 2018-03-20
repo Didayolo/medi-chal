@@ -54,7 +54,7 @@ class AutoML():
 	@classmethod
 	def from_csv(cls, input_dir, basename, X_path, y_path=None, X_header=None, y_header=None):
 		if os.path.exists(X_path):
-			X = pd.read_csv(input_dir + '/' + X_path, X_header) if os.path.exists(X_path) 
+			X = pd.read_csv(input_dir + '/' + X_path, X_header)
 		else:
 			raise OSError('{} file does not exist'.format(X_path))
 		y = pd.read_csv(input_dir + '/' + y_path, y_header) if os.path.exists(y_path) else None
