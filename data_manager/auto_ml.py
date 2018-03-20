@@ -221,7 +221,7 @@ class AutoML():
 
 			print('{}: {}'.format(key, value))
 		
- 	def show_descriptors(self):
+	def show_descriptors(self):
 		''' Show descriptors of the dataset 
 			- Scatter plot features matrix
 			- Classes distribution
