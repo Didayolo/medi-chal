@@ -22,15 +22,15 @@ class AutoML():
 		else:
 			raise OSError('No .data files found')
 
+		self.data = dict()
+		self.init_data(test_size)
+
 		self.info = dict()
 		self.init_info(os.path.join(self.input_dir, self.basename + '_public.info'))
 		self.init_type(os.path.join(self.input_dir, self.basename + '_feat.type'))
 
 		self.feat_name = self.load_name(os.path.join(self.input_dir, self.basename + '_feat.name'))
 		self.label_name = self.load_name(os.path.join(self.input_dir, self.basename + '_label.name'))
-
-		self.data = dict()
-		self.init_data(test_size)
 
 		self.descriptors = dict()
 		self.compute_descriptors()
@@ -54,7 +54,7 @@ class AutoML():
 	@classmethod
 	def from_csv(cls, input_dir, basename, X_path, y_path=None, X_header=None, y_header=None):
 		if os.path.exists(X_path):
-			X = pd.read_csv(input_dir + '/' + X_path, X_header) if os.path.exists(X_path) 
+			X = pd.read_csv(input_dir + '/' + X_path, X_header)
 		else:
 			raise OSError('{} file does not exist'.format(X_path))
 		y = pd.read_csv(input_dir + '/' + y_path, y_header) if os.path.exists(y_path) else None
@@ -151,13 +151,20 @@ class AutoML():
 		return self.info['format']
 
 	def get_nbr_features(self, *filenames):
-		''' Get the number of features directly from the data file (in case we do not have an info file)'''
+		''' Get the number of features directly from data (in case we do not have an info file)'''
 		if 'feat_num' not in self.info.keys():
 			self.get_format_data(filenames[0])
 			if self.info['format'] == 'dense':
 				data = pd.read_csv(filenames[0], sep=' ', header=None)
 				self.info['feat_num'] = data.shape[1]
 		return self.info['feat_num']
+		
+	def get_nbr_instances(self):
+		''' Get the number of instances directly from data (in case we do not have an info file)'''
+		
+		self.info['train_num'] = self.data['X_train']
+		self.info['valid_num']
+		self.info['test_num']
 
 	def get_type_problem(self, solution_filename):
 		''' Get the type of problem directly from the solution file (in case we do not have an info file) '''
