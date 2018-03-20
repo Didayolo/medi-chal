@@ -52,12 +52,16 @@ class AutoML():
 		return cls(input_dir, basename)
 
 	@classmethod
-	def from_csv(cls, input_dir, basename, X_path, y_path=None, X_header=None, y_header=None):
-		if os.path.exists(X_path):
-			X = pd.read_csv(input_dir + '/' + X_path, X_header)
+	def from_csv(cls, input_dir, basename, X_path, y_path=None, X_header='infer', y_header='infer'):
+		if os.path.exists(os.path.join(input_dir, X_path)):
+			X = pd.read_csv(os.path.join(input_dir, X_path), header=X_header)
 		else:
 			raise OSError('{} file does not exist'.format(X_path))
-		y = pd.read_csv(input_dir + '/' + y_path, y_header) if os.path.exists(y_path) else None
+
+		if y_path and os.path.exists(os.path.join(input_dir, y_path)):
+			y = pd.read_csv(os.path.join(input_dir, y_path), header=y_header) 
+		else:
+			y = None
 		return cls.from_df(input_dir, basename, X, y)
 
 	def init_data(self, test_size):
@@ -68,12 +72,13 @@ class AutoML():
 			self.data['y_test'] = self.load_label(os.path.join(self.input_dir, self.basename + '_test.solution'))
 		elif os.path.exists(os.path.join(self.input_dir, self.basename + '.data')):
 			X = self.load_data(os.path.join(self.input_dir, self.basename + '.data'))
-			if os.path.exists(os.path.join(self.input_dir, self.basename + '.solution')):
+			if os.path.exists(os.path.join(self.input_dir, self.basename + '.solution')) \
+					and os.stat(os.path.join(self.input_dir, self.basename + '.solution')).st_size != 0:
 				y = self.load_label(os.path.join(self.input_dir, self.basename + '.solution'))
 				self.data['X_train'], self.data['X_test'], self.data['y_train'], self.data['y_test'] = \
 					train_test_split(X, y, test_size=test_size)
 			else:
-				self.data['X_train'] = X
+				self.data['X_train'], self.data['X_test'], self.data['y_train'], self.data['y_test'] = X, [], [], []
 		else:
 			raise OSError('No .data files in {}.'.format(self.input_dir))
 
@@ -102,25 +107,22 @@ class AutoML():
 			self.info = dict(zip(df[:, 0], df[:, 1]))
 		else:
 			print('No info file file found.')
-
-			self.get_nbr_instances()
 			
 			if os.path.exists(os.path.join(self.input_dir, self.basename + '.data')):
 				self.get_type_problem(os.path.join(self.input_dir, self.basename + '.solution'))
-				# Finds the data format ('dense', 'sparse', or 'sparse_binary')   
-				self.get_format_data(os.path.join(self.input_dir, self.basename + '.data'))
-
-				self.get_nbr_features(os.path.join(self.input_dir, self.basename + '.data'))
 			else:
 				self.get_type_problem(os.path.join(self.input_dir, self.basename + '_train.solution'))
-				# Finds the data format ('dense', 'sparse', or 'sparse_binary')   
-				self.get_format_data(os.path.join(self.input_dir, self.basename + '_train.data'))
 
-				self.get_nbr_features(
-				os.path.join(self.input_dir, self.basename + '_train.data'), 
-				os.path.join(self.input_dir, self.basename + '_test.data'), 
-				os.path.join(self.input_dir, self.basename + '_valid.data'))
-
+			self.info['format'] = 'dense'
+			self.info['is_sparse'] = 0
+			self.info['train_num'], self.info['feat_num'] = self.data['X_train'].shape
+			if self.data['y_train'] and self.data['y_test'] and self.data['X_test']:
+				self.info['target_num'] = self.data['y_train'].shape[1]
+				self.info['test_num'] = self.data['X_test'].shape[0]
+				assert(self.info['train_num'] == self.data['y_train'].shape[0])
+				assert(self.info['feat_num'] == self.data['X_test'].shape[1])
+				assert(self.info['test_num'] == self.data['y_test'].shape[0])
+				assert(self.info['target_num'] == self.info['y_test'].shape[1])
 			self.info['usage'] = 'No info file'
 			self.info['name'] = self.basename
 			self.info['has_categorical'] = 0
@@ -146,30 +148,9 @@ class AutoML():
 	def get_info(self):
 		return self.info
 
-	def get_format_data(self,filename):
-		''' Get the data format directly from the data file (in case we do not have an info file)'''
-		self.info['format'] = 'dense'
-		self.info['is_sparse'] = 0			
-		return self.info['format']
-
-	def get_nbr_features(self, *filenames):
-		''' Get the number of features directly from data (in case we do not have an info file)'''
-		if 'feat_num' not in self.info.keys():
-			self.get_format_data(filenames[0])
-			if self.info['format'] == 'dense':
-				self.info['feat_num'] = self.data['X_train'].shape[1]
-		return self.info['feat_num']
-		
-	def get_nbr_instances(self):
-		''' Get the number of instances directly from data (in case we do not have an info file)'''
-		self.info['train_num'] = self.data['X_train'].shape[0]
-		#self.info['valid_num'] = self.data['X'].shape[0]
-		#self.info['test_num'] = self.data['X'].shape[0]
-		return self.info['train_num']
-
 	def get_type_problem(self, solution_filename):
 		''' Get the type of problem directly from the solution file (in case we do not have an info file) '''
-		if 'task' not in self.info.keys():
+		if 'task' not in self.info.keys() and self.data['y_train']:
 			solution = pd.read_csv(solution_filename, sep=' ', header=None).values
 			target_num = solution.shape[1]
 			self.info['target_num'] = target_num
@@ -197,7 +178,9 @@ class AutoML():
 				if any(item > 1 for item in map(np.sum, solution.astype(int))):
 					self.info['task'] = 'multilabel.classification'     
 				else:
-					self.info['task'] = 'multiclass.classification'        
+					self.info['task'] = 'multiclass.classification'
+		else:
+			self.info['task'] = 'Unknown'    
 		return self.info['task']
 		
 	def get_processed_data(self):
