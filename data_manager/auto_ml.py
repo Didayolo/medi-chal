@@ -26,18 +26,11 @@ class AutoML():
 		self.init_info(os.path.join(self.input_dir, self.basename + '_public.info'))
 		self.init_type(os.path.join(self.input_dir, self.basename + '_feat.type'))
 
-		self.feat_name = []
-		feat_name_file = os.path.join(self.input_dir, self.basename + '_feat.name')
-		if os.path.exists(feat_name_file):
-			self.feat_name = self.load_name(feat_name_file)
-		
-		self.label_name = []
-		label_name_file = os.path.join(self.input_dir, self.basename + '_label.name')
-		if os.path.exists(label_name_file):
-			self.label_name = self.load_name(label_name_file)
+		self.feat_name = self.load_name(os.path.join(self.input_dir, self.basename + '_feat.name'))
+		self.label_name = self.load_name(os.path.join(self.input_dir, self.basename + '_label.name'))
 
 		self.data = dict()
-		self.init_data()
+		self.init_data(test_size)
 
 	@classmethod
 	def from_df(cls, input_dir, basename, X, y):
@@ -65,7 +58,7 @@ class AutoML():
 		y = pd.read_csv(input_dir + '/' + y_path, **kwargs)
 		return cls.from_df(input_dir, basename, X, y)
 
-	def init_data(self):
+	def init_data(self, test_size):
 		if os.path.exists(os.path.join(self.input_dir, self.basename + '_train.data')):
 			self.data['X_train'] = self.load_data(os.path.join(self.input_dir, self.basename + '_train.data'))
 			self.data['y_train'] = self.load_label(os.path.join(self.input_dir, self.basename + '_train.solution'))
@@ -83,10 +76,11 @@ class AutoML():
 		return pd.read_csv(filepath, sep=' ', header=None).values
 
 	def load_label(self, filepath):
-		return pd.read_csv(filepath, sep=' ', header=None).values
-		
+		return pd.read_csv(filepath, sep=' ', header=None).values if os.path.exists(filepath) else []
+
 	def load_name(self, filepath):
-		return pd.read_csv(filepath, sep='\n', header=None).values
+		return pd.read_csv(filepath, header=None).values.ravel() if os.path.exists(filepath) else []
+
 	def init_type(self, filepath):
 		if os.path.exists(filepath):
 			self.info['feat_type'] = pd.read_csv(filepath, header=None).values.ravel()
