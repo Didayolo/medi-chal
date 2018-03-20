@@ -151,7 +151,7 @@ class AutoML():
 	def get_nbr_features(self, *filenames):
 		''' Get the number of features directly from the data file (in case we do not have an info file)'''
 		if 'feat_num' not in self.info.keys():
-			self.getFormatData(filenames[0])
+			self.get_format_data(filenames[0])
 			if self.info['format'] == 'dense':
 				data = pd.read_csv(filenames[0], sep=' ', header=None)
 				self.info['feat_num'] = data.shape[1]
@@ -211,8 +211,26 @@ class AutoML():
 		'''
 		self.descriptors['mean'] = 0
 		
-	def show_descriptors(self):
-		''' Show descriptors of the dataset '''
+	def show_info(self):
+		''' Show AutoML info '''
+		for k in list(self.info.keys()):
+			key = k.capitalize().replace('_', ' ')
+			value = self.info[k]
+			if isinstance(value, str):
+				value = value.capitalize().replace('_', ' ').replace('.', ' ')
+
+			print('{}: {}'.format(key, value))
+		
+ 	def show_descriptors(self):
+		''' Show descriptors of the dataset 
+			- Scatter plot features matrix
+			- Classes distribution
+			- Correlation matrix
+			- Hierarchical clustering heatmap
+			- First two principal components
+			- First two LDA components
+			- T-SNE plot
+		'''
 		
 		x_sets = ['X_train']
 		y_sets = ['y_train']
@@ -238,8 +256,6 @@ class AutoML():
 		print('Correlation matrix')
 		for x in x_sets:
 			print(x)
-			#plt.matshow(data_df[x].corr())
-			#plt.show()
 			show_correlation(data_df[x])
 		
 		print('Hierarchical clustering heatmap')
@@ -271,5 +287,3 @@ class AutoML():
 			print(x_sets[i])
 			print(y_sets[i])
 			show_tsne(data_df[x_sets[i]], data_df[y_sets[i]])
-		
-		
