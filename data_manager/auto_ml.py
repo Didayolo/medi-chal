@@ -206,10 +206,9 @@ class AutoML():
 		
 	def compute_descriptors(self):
 		''' Compute descriptors of the dataset and store them
-			- Descriptor1
-			- Descriptor2...
+			- Dataset ratio
 		'''
-		self.descriptors['mean'] = 0
+		self.descriptors['ratio'] = int(self.info['feat_num']) / int(self.info['train_num'])
 		
 	def show_info(self):
 		''' Show AutoML info '''
@@ -223,6 +222,7 @@ class AutoML():
 		
 	def show_descriptors(self):
 		''' Show descriptors of the dataset 
+			- Dataset ratio
 			- Scatter plot features matrix
 			- Classes distribution
 			- Correlation matrix
@@ -231,6 +231,12 @@ class AutoML():
 			- First two LDA components
 			- T-SNE plot
 		'''
+		
+		# Text
+		
+		print('Dataset ratio (nbr features / nbr instances): {}\n'.format(self.descriptors['ratio']))
+		
+		# Plots
 		
 		x_sets = ['X_train']
 		y_sets = ['y_train']
@@ -274,10 +280,11 @@ class AutoML():
 			print(y_sets[i])
 			show_pca(data_df[x_sets[i]], data_df[y_sets[i]])
 		
-		print('Linear discriminant analysis')
-		for i in range(len(x_sets)):
-			nb_classes = 2 # TODO auto, get nb classes
-			if nb_classes > 2:
+		# Linear discriminant analysis
+		#if int(self.info['target_num']) > 2: # or label_num ?
+		if False: # TODO
+			print('Linear discriminant analysis')
+			for i in range(len(x_sets)):
 				print(x_sets[i])
 				print(y_sets[i])
 				show_lda(data_df[x_sets[i]], data_df[y_sets[i]])
