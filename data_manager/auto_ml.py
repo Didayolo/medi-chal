@@ -211,8 +211,26 @@ class AutoML():
 		'''
 		self.descriptors['mean'] = 0
 		
+	def show_info(self):
+		''' Show AutoML info '''
+		for k in list(self.info.keys()):
+			key = k.capitalize().replace('_', ' ')
+			value = self.info[k]
+			if isinstance(value, str):
+				value = value.capitalize().replace('_', ' ').replace('.', ' ')
+
+			print('{}: {}'.format(key, value))
+		
 	def show_descriptors(self):
-		''' Show descriptors of the dataset '''
+		''' Show descriptors of the dataset 
+			- Scatter plot features matrix
+			- Classes distribution
+			- Correlation matrix
+			- Hierarchical clustering heatmap
+			- First two principal components
+			- First two LDA components
+			- T-SNE plot
+		'''
 		
 		x_sets = ['X_train']
 		y_sets = ['y_train']
@@ -238,8 +256,6 @@ class AutoML():
 		print('Correlation matrix')
 		for x in x_sets:
 			print(x)
-			#plt.matshow(data_df[x].corr())
-			#plt.show()
 			show_correlation(data_df[x])
 		
 		print('Hierarchical clustering heatmap')
