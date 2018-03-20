@@ -69,19 +69,33 @@ def preprocessing(data):
 	return data
 
 def show_classes(y):
-	''' Show classes distribution
+	''' Shows classes distribution
 		Input : y is a pandas DataFrame
 	'''
 	for column in y.columns:
 		sns.distplot(y[column])
 		plt.show()
 	
+def show_correlation(df,size=10):
+    ''' Shows a graphical correlation matrix for each pair of columns in the dataframe.
+
+    Input:
+      	df: pandas DataFrame
+        size: vertical and horizontal size of the plot
+    '''
+
+    corr = df.corr()
+    fig, ax = plt.subplots(figsize=(size, size))
+    ax.matshow(corr)
+    plt.xticks(range(len(corr.columns)), corr.columns);
+    plt.yticks(range(len(corr.columns)), corr.columns);
+    plt.show()
 	
 def heatmap(X, row_method,
             column_method, row_metric, column_metric,
             color_gradient):
 
-    print("\nPerforming hiearchical clustering using {} for columns and {} for rows".format(column_metric, row_metric))
+    print("\nPerforming hierarchical clustering using {} for columns and {} for rows".format(column_metric, row_metric))
 
     '''
     This below code is based in large part on the protype methods:

@@ -31,6 +31,9 @@ class AutoML():
 
 		self.data = dict()
 		self.init_data(test_size)
+		
+		self.descriptors = dict()
+		self.compute_descriptors()
 
 	@classmethod
 	def from_df(cls, input_dir, basename, X, y):
@@ -202,11 +205,11 @@ class AutoML():
 		return processed_data
 		
 	def compute_descriptors(self):
-		''' Compute descriptors or the dataset
+		''' Compute descriptors of the dataset and store them
 			- Descriptor1
 			- Descriptor2...
 		'''
-		pass
+		self.descriptors['mean'] = 0
 		
 	def show_descriptors(self):
 		''' Show descriptors of the dataset '''
@@ -231,6 +234,13 @@ class AutoML():
 		for y in y_sets:
 			print(y)
 			show_classes(data_df[y])
+			
+		print('Correlation matrix')
+		for x in x_sets:
+			print(x)
+			#plt.matshow(data_df[x].corr())
+			#plt.show()
+			show_correlation(data_df[x])
 		
 		print('Hierarchical clustering heatmap')
 		row_method = 'average'
