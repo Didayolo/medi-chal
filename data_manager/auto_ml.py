@@ -27,8 +27,8 @@ class AutoML():
 
 		self.info = dict()
 		self.init_info(os.path.join(self.input_dir, self.basename + '_public.info'))
-		self.init_type(os.path.join(self.input_dir, self.basename + '_feat.type'))
-
+		
+		self.load_type(os.path.join(self.input_dir, self.basename + '_feat.type'))
 		self.feat_name = self.load_name(os.path.join(self.input_dir, self.basename + '_feat.name'))
 		self.label_name = self.load_name(os.path.join(self.input_dir, self.basename + '_label.name'))
 
@@ -91,7 +91,7 @@ class AutoML():
 	def load_name(self, filepath):
 		return pd.read_csv(filepath, header=None).values.ravel() if os.path.exists(filepath) else []
 
-	def init_type(self, filepath):
+	def load_type(self, filepath):
 		if os.path.exists(filepath):
 			self.info['feat_type'] = pd.read_csv(filepath, header=None).values.ravel()
 		else:
@@ -116,7 +116,7 @@ class AutoML():
 			self.info['format'] = 'dense'
 			self.info['is_sparse'] = 0
 			self.info['train_num'], self.info['feat_num'] = self.data['X_train'].shape
-			if self.data['y_train'] and self.data['y_test'] and self.data['X_test']:
+			if self.data['y_train'].size != 0 and self.data['y_test'].size != 0 and self.data['X_test'].size !=0:
 				self.info['target_num'] = self.data['y_train'].shape[1]
 				self.info['test_num'] = self.data['X_test'].shape[0]
 				assert(self.info['train_num'] == self.data['y_train'].shape[0])
@@ -147,6 +147,31 @@ class AutoML():
 		
 	def get_info(self):
 		return self.info
+
+	def save(self, out_path, out_name):
+		def write_array(path, X):
+			np.savetxt(path, X, fmt='%s')
+
+		if not os.path.isdir(out_path):
+			os.makedirs(out_path)
+
+		if self.data['X_test'].size != 0 and self.data['y_train'].size != 0 and self.data['y_test'].size != 0:
+			print(os.path.join(out_path, out_name + '_train.data'))
+			write_array(os.path.join(out_path, out_name + '_train.data'), self.data['X_train'])
+			write_array(os.path.join(out_path, out_name + '_test.data'), self.data['X_test'])
+			write_array(os.path.join(out_path, out_name + '_test.solution'), self.data['y_train'])
+			write_array(os.path.join(out_path, out_name + '_test.solution'), self.data['y_test'])
+			write_array(os.path.join(out_path, out_name + '_label.name'), self.label_name)
+		else:
+			write_array(os.path.join(out_path, out_name + '.data'), self.data['X_train'])
+
+		write_array(os.path.join(out_path, out_name + '_feat.name'), self.feat_name)
+		with open(os.path.join(out_path, out_name + '_public.info'), 'w') as f:
+			for key, item in self.info.items():
+				f.write(str(key))
+				f.write(' = ')
+				f.write(str(item))
+				f.write('\n')
 
 	def get_type_problem(self, solution_filename):
 		''' Get the type of problem directly from the solution file (in case we do not have an info file) '''
