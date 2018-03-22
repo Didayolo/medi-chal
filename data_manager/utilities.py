@@ -18,6 +18,7 @@ import getopt
 
 # Principal component analysis
 from sklearn.decomposition import PCA
+from itertools import combinations
 
 # Discriminant analysis
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
@@ -368,25 +369,55 @@ def heatmap(X, row_method, column_method, row_metric, column_metric,
 # TODO firstly compute and store PCA, LDA, etc.
 # Then we can use other descriptors and plots on it
 
+def compute_pca(X, verbose=True, **kwargs):
+    ''' Compute PCA '''
+    pca = PCA(**kwargs)
+    X = pca.fit_transform(X)
 
-def show_pca(X, y):
-    ''' Perform and plot PCA '''
+    if verbose: 
+        print('Explained variance ratio of the {} components: \n {}'.format(pca.n_components_, 
+                                                                         pca.explained_variance_ratio_))
+        plt.bar(left = range(pca.n_components_), 
+                height = pca.explained_variance_ratio_, 
+                width=0.3, 
+                tick_label=range(pca.n_components_))
+        plt.title('Explained variance ratio by principal component')
+        plt.show()
+        
+    return pca, X
 
-    y = np.array(y).T[0]
-    target_names = ['zero', 'one']  # TODO
 
-    pca = PCA(n_components=2)
-    X_r = pca.fit(X).transform(X)
+def show_pca(X, y, max_plot=1, verbose=True, **kwargs):
+    ''' Plot PCA '''
+    _, X = compute_pca(X, verbose, **kwargs)
+    if y.shape[1] > 1:
+        y_num = y.shape[1]
+        target_names = list(y.columns)
+        y = np.where(y==1)[1]
+    else:
+        y_num = y.max()
+        target_names = range(y_num)
+    
+    num_plot = min(int(X.shape[1] * (X.shape[1] - 1) / 2), max_plot)
+    
+    if num_plot == 1:
+        for label in range(y_num):
+            plt.scatter(X[y == label, 0], X[y == label, 1], alpha=.8, lw=2, label=target_names[label])
+        plt.xlabel('PC1')
+        plt.ylabel('PC2')
+        plt.legend(loc='best', shadow=False, scatterpoints=1)
+        plt.title('Principal Component Analysis: PC1 and PC2')
+    else:
+        fig, ax = plt.subplots(num_plot + 1, 1, figsize=(10, 15))
+        for p, (i, j) in enumerate(combinations(range(X.shape[1]), 2)):
+            if p <= num_plot:
+                for label in range(y_num):
+                    ax[p].scatter(X[y == label, i], X[y == label, j], alpha=.8, lw=2, label=target_names[label])
 
-    print('Explained variance ratio (first two components): {}'.format(
-        pca.explained_variance_ratio_))
-
-    for i, target_name in zip([0, 1], target_names):
-        plt.scatter(
-            X_r[y == i, 0], X_r[y == i, 1], alpha=.8, lw=2, label=target_name)
-
-    plt.legend(loc='best', shadow=False, scatterpoints=1)
-    plt.title('PCA of dataset')
+                ax[p].set_xlabel('PC '+str(i))
+                ax[p].set_ylabel('PC '+str(j))
+                ax[p].legend(loc='best', shadow=False, scatterpoints=1)
+                ax[p].set_title('Principal Component Analysis: PC{} and PC{}'.format(str(i), str(j)))
     plt.show()
 
 
@@ -411,12 +442,18 @@ def show_lda(X, y):
 def show_tsne(X, y):
     ''' Perform and plot T-SNE algorithm '''
 
-    y = np.array(y).T[0]
-    target_names = ['zero', 'one']  # TODO
+    #y = np.array(y).T[0]
+    if y.shape[1] > 1:
+        y_num = y.shape[1]
+        target_names = list(y.columns)
+        y = np.where(y==1)[1]
+    else:
+        y_num = y.max()
+        target_names = range(y_num)
 
     X_embedded = TSNE(n_components=2).fit_transform(X)
 
-    for i, target_name in zip([0, 1], target_names):
+    for i, target_name in zip(range(y_num), target_names):
         plt.scatter(
             X_embedded[y == i, 0],
             X_embedded[y == i, 1],
