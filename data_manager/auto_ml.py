@@ -28,7 +28,7 @@ class AutoML():
 		self.info = dict()
 		self.init_info(os.path.join(self.input_dir, self.basename + '_public.info'))
 		
-		self.load_type(os.path.join(self.input_dir, self.basename + '_feat.type'))
+		self.feat_type = self.load_type(os.path.join(self.input_dir, self.basename + '_feat.type'))
 		self.feat_name = self.load_name(os.path.join(self.input_dir, self.basename + '_feat.name'))
 		self.label_name = self.load_name(os.path.join(self.input_dir, self.basename + '_label.name'))
 
@@ -83,20 +83,20 @@ class AutoML():
 			raise OSError('No .data files in {}.'.format(self.input_dir))
 
 	def load_data(self, filepath):
-		return pd.read_csv(filepath, sep=' ', header=None).values
+		return pd.read_csv(filepath, sep=' ', header=None).values if os.path.exists(filepath) \
+				else []
 
 	def load_label(self, filepath):
-		return pd.read_csv(filepath, sep=' ', header=None).values if os.path.exists(filepath) else []
+		return pd.read_csv(filepath, sep=' ', header=None).values if os.path.exists(filepath) \
+				else []
 
 	def load_name(self, filepath):
-		return pd.read_csv(filepath, header=None).values.ravel() if os.path.exists(filepath) else []
+		return pd.read_csv(filepath, header=None).values.ravel() if os.path.exists(filepath) \
+				else ['X' + str(i) for i in range(self.info['feat_num'])]
 
 	def load_type(self, filepath):
-		if os.path.exists(filepath):
-			self.info['feat_type'] = pd.read_csv(filepath, header=None).values.ravel()
-		else:
-			print('No features type file found.')
-			self.info['feat_type'] = [self.info['feat_type']] * self.info['feat_num']
+		return pd.read_csv(filepath, header=None).values.ravel() if os.path.exists(filepath) \
+				else [self.info['feat_type']] * self.info['feat_num']
 
 	def init_info(self, filepath):
 		if os.path.exists(filepath):
