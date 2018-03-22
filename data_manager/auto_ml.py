@@ -259,7 +259,7 @@ class AutoML():
         return self.info['task']
 
     def get_processed_data(self):
-        ''' Return preprocessed data as a dictionary or pandas DataFrame
+        ''' Return preprocessed data as a dictionary of pandas DataFrame
 			- Missing values inputation
 			- +Inf and -Inf replaced by maximum and minimum
 			- One hot encoding for categorical variables

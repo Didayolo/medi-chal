@@ -370,7 +370,7 @@ def heatmap(X, row_method, column_method, row_metric, column_metric,
 
 
 def show_pca(X, y):
-    """ Perform and plot PCA """
+    ''' Perform and plot PCA '''
 
     y = np.array(y).T[0]
     target_names = ['zero', 'one']  # TODO
@@ -391,7 +391,7 @@ def show_pca(X, y):
 
 
 def show_lda(X, y):
-    """ Perform and plot LDA """
+    ''' Perform and plot LDA '''
 
     y = np.array(y).T[0]
     target_names = ['zero', 'one']  # TODO
@@ -409,7 +409,7 @@ def show_lda(X, y):
 
 
 def show_tsne(X, y):
-    """ Perform and plot T-SNE algorithm """
+    ''' Perform and plot T-SNE algorithm '''
 
     y = np.array(y).T[0]
     target_names = ['zero', 'one']  # TODO
