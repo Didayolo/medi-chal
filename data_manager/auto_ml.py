@@ -10,6 +10,7 @@ import seaborn as sns
 
 class AutoML():
     def __init__(self, input_dir="", basename="", test_size=0, verbose=False):
+        ''' Constructor '''
         if os.path.isdir(input_dir):
             self.input_dir = input_dir
         else:
