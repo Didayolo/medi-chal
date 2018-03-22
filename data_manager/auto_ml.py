@@ -273,11 +273,19 @@ class AutoML():
         return processed_data
 
     def compute_descriptors(self):
-        ''' Compute descriptors of the dataset and store them
-			- Dataset ratio
+        ''' Compute descriptors of the dataset and store them in self.descriptors dictionary
+			- ratio: Dataset ratio
+			- skewness_min: Minimum skewness over features 
+			- skewness_max: Maximum skewness over features
+			- skewness_mean: Average skewness over features
 		'''
         self.descriptors['ratio'] = int(self.info['feat_num']) / int(
             self.info['train_num'])
+            
+        skewness = self.get_data_as_df()['X_train'].skew()
+        self.descriptors['skewness_min'] = skewness.min()
+        self.descriptors['skewness_max'] = skewness.max()
+        self.descriptors['skewness_mean'] = skewness.mean()
 
     def show_info(self):
         ''' Show AutoML info '''
@@ -303,8 +311,13 @@ class AutoML():
 
         # Text
 
-        print('Dataset ratio (nbr features / nbr instances): {}\n'.format(
-            self.descriptors['ratio']))
+        for k in list(self.descriptors.keys()):
+            key = k.capitalize().replace('_', ' ')
+            value = self.descriptors[k]
+            if isinstance(value, str):
+                value = value.capitalize().replace('_', ' ').replace('.', ' ')
+
+            print('{}: {}'.format(key, value))
 
         # Plots
 
