@@ -386,7 +386,6 @@ def compute_pca(X, verbose=True, **kwargs):
         
     return pca, X
 
-
 def show_pca(X, y, max_plot=1, verbose=True, **kwargs):
     ''' Plot PCA '''
     _, X = compute_pca(X, verbose, **kwargs)

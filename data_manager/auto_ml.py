@@ -224,7 +224,12 @@ class AutoML():
                 f.write('\n')
 
     def get_type_problem(self, solution_filename):
-        ''' Get the type of problem directly from the solution file (in case we do not have an info file) '''
+        ''' Get the type of problem directly from the solution file (in case we do not have an info file).
+            - ratio: Dataset ratio
+            - skewness_min: Minimum skewness over features 
+            - skewness_max: Maximum skewness over features
+            - skewness_mean: Average skewness over features
+        '''
         if 'task' not in self.info.keys() and self.data['y_train']:
             solution = pd.read_csv(
                 solution_filename, sep=' ', header=None).values
