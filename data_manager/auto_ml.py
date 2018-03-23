@@ -10,7 +10,20 @@ import seaborn as sns
 
 class AutoML():
     def __init__(self, input_dir="", basename="", test_size=0, verbose=False):
-        ''' Constructor '''
+        """
+            Constructor 
+            Recover all autoML files available and build the AutoML structure containing them.
+
+            :param input_dir: The directory where the autoML files are stored.
+            :param basename: The name of the dataset (i.e. the prefix in the name of the files) 
+                                Example : files = ('iris.data', iris_feat.name', etc.)
+                                          basename = 'iris'
+            :param test_size: If data is not splitted in autoML files, size of the test set.
+                                Example : files = (i.e 'iris.data')
+                                          test_size = 0.5
+                                -> Data will be splitted 50% in X_train and 50% in X_test
+            :param verbose: Display additional information when running.
+        """
         if os.path.isdir(input_dir):
             self.input_dir = input_dir
         else:
@@ -43,6 +56,16 @@ class AutoML():
 
     @classmethod
     def from_df(cls, input_dir, basename, X, y=None):
+        """
+            Class Method
+            Build AutoML structure from Pandas DataFrame.
+            Generates autoML files from Pandas DataFrame, write them on disk and call the AutoML constructor.
+            
+            :param input_dir: The directory where the autoML files will be stored.
+            :param basename: The name of the dataset.
+            :param X: dataset containing the samples.
+            :param y: dataset containing the labels (optional if no labels).
+        """
         def write(filepath, X):
             np.savetxt(filepath, X, fmt='%s')
 
@@ -58,13 +81,19 @@ class AutoML():
         return cls(input_dir, basename)
 
     @classmethod
-    def from_csv(cls,
-                 input_dir,
-                 basename,
-                 X_path,
-                 y_path=None,
-                 X_header='infer',
-                 y_header='infer'):
+    def from_csv(cls, input_dir, basename, X_path, y_path=None, X_header='infer', y_header='infer'):
+        """
+            Class Method
+            Build AutoML structure from CSV file.
+            Generates autoML files from CSV file, write them on disk and call the AutoML constructor.
+            
+            :param input_dir: The directory where the autoML files will be stored.
+            :param basename: The name of the dataset.
+            :param X_path: path of the .csv containing the samples.
+            :param y_path: path of the .csv containing the labels (optional if no labels).
+            :param X_header: header (parameter under review)
+            :param Y_header: header (parameter under review)
+        """
         if os.path.exists(os.path.join(input_dir, X_path)):
             X = pd.read_csv(os.path.join(input_dir, X_path), header=X_header)
         else:
@@ -77,6 +106,18 @@ class AutoML():
         return cls.from_df(input_dir, basename, X, y)
 
     def init_data(self, test_size):
+        """
+            Load .data autoML files in a dictionary.
+            Some specs : 
+                - If data is not splitted (i.e. no '_train.data', '_test.data'), load samples in X_train.
+            
+            :param test_size: If data is not splitted in autoML files, size of the test set.
+                                Example : files = (i.e 'iris.data')
+                                          test_size = 0.5
+                                -> Data will be splitted 50% in X_train and 50% in X_test
+
+            .. note:: if data is not splitted (i.e. no '_train.data', '_test.data'), samples are loaded in X_train.
+        """
         if os.path.exists(
                 os.path.join(self.input_dir, self.basename + '_train.data')):
             self.data['X_train'] = self.load_data(
@@ -105,22 +146,60 @@ class AutoML():
             raise OSError('No .data files in {}.'.format(self.input_dir))
 
     def load_data(self, filepath):
+        """
+            Load a .data autoML file in an array.
+
+            :param filepath: path of the file.
+            :return: array containing the data. 
+            :rtype: numpy array
+        """
         return pd.read_csv(filepath, sep=' ', header=None).values if os.path.exists(filepath) \
           else []
 
     def load_label(self, filepath):
+        """ 
+            Load a .solution autoML file in an array.
+
+            :param filepath: path of the file.
+            :return: array containing the data. 
+            :rtype: numpy array
+        """
         return pd.read_csv(filepath, sep=' ', header=None).values if os.path.exists(filepath) \
           else []
 
     def load_name(self, filepath):
+        """
+            Load a _feat.name autoML file in an array.
+            If None, return an array of variables [X1, ..., XN] (with N the number of features).
+                   
+            :param filepath: path of the file.
+            :return: array containing the data. 
+            :rtype: numpy array
+        """
         return pd.read_csv(filepath, header=None).values.ravel() if os.path.exists(filepath) \
           else ['X' + str(i) for i in range(self.info['feat_num'])]
 
     def load_type(self, filepath):
+        """
+            Load a _feat.type autoML file in an array.
+            If None, return an array of variables ['Unknown', ..., 'Unknown'].
+                   
+            :param filepath: path of the file.
+            :return: array containing the data. 
+            :rtype: numpy array
+        """
         return pd.read_csv(filepath, header=None).values.ravel() if os.path.exists(filepath) \
           else [self.info['feat_type']] * self.info['feat_num']
 
     def init_info(self, filepath):
+        """
+            Load a _public.info autoML file in a dictionary.
+            If None, build the dictionary on its own.
+                   
+            :param filepath: path of the file.
+            :return: dictionary containing the data. 
+            :rtype: dict
+        """
         if os.path.exists(filepath):
             df = pd.read_csv(
                 os.path.join(self.input_dir, self.basename + '_public.info'),
@@ -170,7 +249,12 @@ class AutoML():
         return self.data
 
     def get_data_as_df(self):
-        ''' Get data as a dictionary of pandas DataFrame'''
+        """ 
+            Get data as a dictionary of pandas DataFrame 
+            
+
+
+        """
         data = dict()
         data['X_train'] = pd.DataFrame(
             self.data['X_train'], columns=self.feat_name)
