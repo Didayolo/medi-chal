@@ -28,7 +28,8 @@ from sklearn.manifold import TSNE
 
 
 def is_numeric(variable):
-    ''' Test if a variable (DataFrame column) is numeric or categorical '''
+    """ Test if a variable (DataFrame column) is numeric or categorical 
+    """
 
     numeric = False
     for value in variable:
@@ -42,7 +43,8 @@ def is_numeric(variable):
 
 
 def preprocessing(data):
-    ''' Return preprocessed DataFrame '''
+    """ Return preprocessed DataFrame 
+    """
 
     columns = data.columns.values
 
@@ -73,21 +75,21 @@ def preprocessing(data):
 
 
 def show_classes(y):
-    ''' Shows classes distribution
+    """ Shows classes distribution
 		Input : y is a pandas DataFrame
-	'''
+	"""
     for column in y.columns:
         sns.distplot(y[column])
         plt.show()
 
 
 def show_correlation(df, size=10):
-    ''' Shows a graphical correlation matrix for each pair of columns in the dataframe.
+    """ Shows a graphical correlation matrix for each pair of columns in the dataframe.
 
     Input:
       	df: pandas DataFrame
         size: vertical and horizontal size of the plot
-    '''
+    """
 
     corr = df.corr()
     fig, ax = plt.subplots(figsize=(size, size))
@@ -103,13 +105,13 @@ def heatmap(X, row_method, column_method, row_metric, column_metric,
     print(
         "\nPerforming hierarchical clustering using {} for columns and {} for rows".
         format(column_metric, row_metric))
-    '''
+    """
     This below code is based in large part on the protype methods:
     http://old.nabble.com/How-to-plot-heatmap-with-matplotlib--td32534593.html
     http://stackoverflow.com/questions/7664826/how-to-get-flat-clustering-corresponding-to-color-clusters-in-the-dendrogram-cre
 
     x is an m by n ndarray, m observations, n genes
-    '''
+    """
 
     ### Define variables
     x = np.array(X)
@@ -370,7 +372,8 @@ def heatmap(X, row_method, column_method, row_metric, column_metric,
 # Then we can use other descriptors and plots on it
 
 def compute_pca(X, verbose=True, **kwargs):
-    ''' Compute PCA '''
+    """ Compute PCA 
+    """
     pca = PCA(**kwargs)
     X = pca.fit_transform(X)
 
@@ -387,7 +390,8 @@ def compute_pca(X, verbose=True, **kwargs):
     return pca, X
 
 def show_pca(X, y, max_plot=1, verbose=True, **kwargs):
-    ''' Plot PCA '''
+    """ Plot PCA 
+    """
     _, X = compute_pca(X, verbose, **kwargs)
     if y.shape[1] > 1:
         y_num = y.shape[1]
@@ -421,7 +425,8 @@ def show_pca(X, y, max_plot=1, verbose=True, **kwargs):
 
 
 def show_lda(X, y):
-    ''' Perform and plot LDA '''
+    """ Perform and plot LDA 
+    """
 
     y = np.array(y).T[0]
     target_names = ['zero', 'one']  # TODO
@@ -439,7 +444,8 @@ def show_lda(X, y):
 
 
 def show_tsne(X, y):
-    ''' Perform and plot T-SNE algorithm '''
+    """ Perform and plot T-SNE algorithm 
+    """
 
     #y = np.array(y).T[0]
     if y.shape[1] > 1:

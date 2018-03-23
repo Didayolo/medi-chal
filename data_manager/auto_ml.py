@@ -251,9 +251,6 @@ class AutoML():
     def get_data_as_df(self):
         """ 
             Get data as a dictionary of pandas DataFrame 
-            
-
-
         """
         data = dict()
         data['X_train'] = pd.DataFrame(
@@ -308,12 +305,12 @@ class AutoML():
                 f.write('\n')
 
     def get_type_problem(self, solution_filename):
-        ''' Get the type of problem directly from the solution file (in case we do not have an info file).
+        """ Get the type of problem directly from the solution file (in case we do not have an info file).
             - ratio: Dataset ratio
             - skewness_min: Minimum skewness over features 
             - skewness_max: Maximum skewness over features
             - skewness_mean: Average skewness over features
-        '''
+        """
         if 'task' not in self.info.keys() and self.data['y_train']:
             solution = pd.read_csv(
                 solution_filename, sep=' ', header=None).values
@@ -349,11 +346,11 @@ class AutoML():
         return self.info['task']
 
     def get_processed_data(self):
-        ''' Return preprocessed data as a dictionary of pandas DataFrame
+        """ Return preprocessed data as a dictionary of pandas DataFrame
 			- Missing values inputation
 			- +Inf and -Inf replaced by maximum and minimum
 			- One hot encoding for categorical variables
-		'''
+		"""
         processed_data = dict()
         data_df = self.get_data_as_df()
 
@@ -363,12 +360,12 @@ class AutoML():
         return processed_data
 
     def compute_descriptors(self):
-        ''' Compute descriptors of the dataset and store them in self.descriptors dictionary
+        """ Compute descriptors of the dataset and store them in self.descriptors dictionary
 			- ratio: Dataset ratio
 			- skewness_min: Minimum skewness over features 
 			- skewness_max: Maximum skewness over features
 			- skewness_mean: Average skewness over features
-		'''
+		"""
         self.descriptors['ratio'] = int(self.info['feat_num']) / int(
             self.info['train_num'])
             
@@ -378,7 +375,8 @@ class AutoML():
         self.descriptors['skewness_mean'] = skewness.mean()
 
     def show_info(self):
-        ''' Show AutoML info '''
+        """ Show AutoML info 
+        """
         for k in list(self.info.keys()):
             key = k.capitalize().replace('_', ' ')
             value = self.info[k]
@@ -388,7 +386,7 @@ class AutoML():
             print('{}: {}'.format(key, value))
 
     def show_descriptors(self):
-        ''' Show descriptors of the dataset 
+        """ Show descriptors of the dataset 
 			- Dataset ratio
 			- Scatter plot features matrix
 			- Classes distribution
@@ -397,7 +395,7 @@ class AutoML():
 			- First two principal components
 			- First two LDA components
 			- T-SNE plot
-		'''
+		"""
 
         # Text
 
