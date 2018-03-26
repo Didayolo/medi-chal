@@ -22,7 +22,7 @@ class AutoML():
                                 Example : files = (i.e 'iris.data')
                                           test_size = 0.5
                                 -> Data will be splitted 50% in X_train and 50% in X_test
-            :param verbose: Display additional information when running.
+            :param verbose: Display additional information during run.
         """
         if os.path.isdir(input_dir):
             self.input_dir = input_dir
@@ -63,8 +63,8 @@ class AutoML():
             
             :param input_dir: The directory where the autoML files will be stored.
             :param basename: The name of the dataset.
-            :param X: dataset containing the samples.
-            :param y: dataset containing the labels (optional if no labels).
+            :param X: Dataset containing the samples.
+            :param y: Dataset containing the labels (optional if no labels).
         """
         def write(filepath, X):
             np.savetxt(filepath, X, fmt='%s')
@@ -116,7 +116,7 @@ class AutoML():
                                           test_size = 0.5
                                 -> Data will be splitted 50% in X_train and 50% in X_test
 
-            .. note:: if data is not splitted (i.e. no '_train.data', '_test.data'), samples are loaded in X_train.
+            .. note:: If data is not splitted (i.e. no '_train.data', '_test.data'), samples are loaded in X_train.
         """
         if os.path.exists(
                 os.path.join(self.input_dir, self.basename + '_train.data')):
@@ -160,9 +160,9 @@ class AutoML():
         """ 
             Load a .solution autoML file in an array.
 
-            :param filepath: path of the file.
-            :return: array containing the data. 
-            :rtype: numpy array
+            :param filepath: Path of the file.
+            :return: Array containing the data labels. 
+            :rtype: Numpy Array
         """
         return pd.read_csv(filepath, sep=' ', header=None).values if os.path.exists(filepath) \
           else []
@@ -172,9 +172,9 @@ class AutoML():
             Load a _feat.name autoML file in an array.
             If None, return an array of variables [X1, ..., XN] (with N the number of features).
                    
-            :param filepath: path of the file.
-            :return: array containing the data. 
-            :rtype: numpy array
+            :param filepath: Path of the file.
+            :return: Array containing the data names. 
+            :rtype: Numpy Array
         """
         return pd.read_csv(filepath, header=None).values.ravel() if os.path.exists(filepath) \
           else ['X' + str(i) for i in range(self.info['feat_num'])]
@@ -184,9 +184,9 @@ class AutoML():
             Load a _feat.type autoML file in an array.
             If None, return an array of variables ['Unknown', ..., 'Unknown'].
                    
-            :param filepath: path of the file.
-            :return: array containing the data. 
-            :rtype: numpy array
+            :param filepath: Path of the file.
+            :return: Array containing the data types. 
+            :rtype: Numpy Array
         """
         return pd.read_csv(filepath, header=None).values.ravel() if os.path.exists(filepath) \
           else [self.info['feat_type']] * self.info['feat_num']
@@ -196,9 +196,9 @@ class AutoML():
             Load a _public.info autoML file in a dictionary.
             If None, build the dictionary on its own.
                    
-            :param filepath: path of the file.
-            :return: dictionary containing the data. 
-            :rtype: dict
+            :param filepath: Path of the file.
+            :return: Dictionary containing the data information. 
+            :rtype: Dict
         """
         if os.path.exists(filepath):
             df = pd.read_csv(
@@ -251,6 +251,9 @@ class AutoML():
     def get_data_as_df(self):
         """ 
             Get data as a dictionary of pandas DataFrame 
+            
+            :return: Dictionary containing the data.
+            :rtype: Dict
         """
         data = dict()
         data['X_train'] = pd.DataFrame(
@@ -304,16 +307,17 @@ class AutoML():
                 f.write(str(item))
                 f.write('\n')
 
-    def get_type_problem(self, solution_filename):
-        """ Get the type of problem directly from the solution file (in case we do not have an info file).
-            - ratio: Dataset ratio
-            - skewness_min: Minimum skewness over features 
-            - skewness_max: Maximum skewness over features
-            - skewness_mean: Average skewness over features
+    def get_type_problem(self, solution_filepath):
+        """ 
+            Get the type of problem directly from the solution file (in case we do not have an info file).
+
+            :param solution_filepath: Path of the file
+            :return: Type of the problem stored in the info dict attribute as 'task'
+            :rtype: str
         """
-        if 'task' not in self.info.keys() and self.data['y_train']:
+        if 'task' not in self.info.keys() and self.data['y_train'].size != 0:
             solution = pd.read_csv(
-                solution_filename, sep=' ', header=None).values
+                solution_filepath, sep=' ', header=None).values
             target_num = solution.shape[1]
             self.info['target_num'] = target_num
             if target_num == 1:  # if we have only one column
@@ -346,10 +350,14 @@ class AutoML():
         return self.info['task']
 
     def get_processed_data(self):
-        """ Return preprocessed data as a dictionary of pandas DataFrame
+        """ 
+            Preprocess data.
 			- Missing values inputation
 			- +Inf and -Inf replaced by maximum and minimum
 			- One hot encoding for categorical variables
+
+            :return: Dictionnary containing the preprocessed data as Pandas DataFrame
+            :rtype: Dict
 		"""
         processed_data = dict()
         data_df = self.get_data_as_df()
@@ -360,7 +368,8 @@ class AutoML():
         return processed_data
 
     def compute_descriptors(self):
-        """ Compute descriptors of the dataset and store them in self.descriptors dictionary
+        """ 
+            Compute descriptors of the dataset and store them in self.descriptors dictionary.
 			- ratio: Dataset ratio
 			- skewness_min: Minimum skewness over features 
 			- skewness_max: Maximum skewness over features
@@ -375,7 +384,8 @@ class AutoML():
         self.descriptors['skewness_mean'] = skewness.mean()
 
     def show_info(self):
-        """ Show AutoML info 
+        """ 
+            Show AutoML info 
         """
         for k in list(self.info.keys()):
             key = k.capitalize().replace('_', ' ')
@@ -386,7 +396,8 @@ class AutoML():
             print('{}: {}'.format(key, value))
 
     def show_descriptors(self):
-        """ Show descriptors of the dataset 
+        """ 
+            Show descriptors of the dataset 
 			- Dataset ratio
 			- Scatter plot features matrix
 			- Classes distribution

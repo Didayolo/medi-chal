@@ -367,21 +367,25 @@ def heatmap(X, row_method, column_method, row_metric, column_metric,
 
     plt.show()
 
+def compute_pca(X, verbose=False, **kwargs):
+    """ 
+        Compute PCA.
 
-# TODO firstly compute and store PCA, LDA, etc.
-# Then we can use other descriptors and plots on it
-
-def compute_pca(X, verbose=True, **kwargs):
-    """ Compute PCA 
+        :param X: Data 
+        :param verbose: Display additional information during run
+        :param **kwargs: Additional parameters for PCA (see sklearn doc)
+        :return: Tuple (pca, X) containing a PCA object (see sklearn doc) and the transformed data
+        :rtype: Tuple
     """
     pca = PCA(**kwargs)
     X = pca.fit_transform(X)
 
+    print('Explained variance ratio of the {} components: \n {}'.format(pca.n_components_, 
+                                                                        pca.explained_variance_ratio_))
+
     if verbose: 
-        print('Explained variance ratio of the {} components: \n {}'.format(pca.n_components_, 
-                                                                         pca.explained_variance_ratio_))
-        plt.bar(left = range(pca.n_components_), 
-                height = pca.explained_variance_ratio_, 
+        plt.bar(left=range(pca.n_components_), 
+                height=pca.explained_variance_ratio_, 
                 width=0.3, 
                 tick_label=range(pca.n_components_))
         plt.title('Explained variance ratio by principal component')
@@ -389,8 +393,15 @@ def compute_pca(X, verbose=True, **kwargs):
         
     return pca, X
 
-def show_pca(X, y, max_plot=1, verbose=True, **kwargs):
-    """ Plot PCA 
+def show_pca(X, y, max_plot=1, verbose=False, **kwargs):
+    """ 
+        Plot PCA.
+
+        :param X: Data
+        :param y: Labels
+        :param max_plot: Number of graphs PC_i vs PC_j displayed
+        :param verbose: Display additional information during run
+        :param **kwargs: Additional parameters for PCA (see sklearn doc)
     """
     _, X = compute_pca(X, verbose, **kwargs)
     if y.shape[1] > 1:
@@ -423,31 +434,70 @@ def show_pca(X, y, max_plot=1, verbose=True, **kwargs):
                 ax[p].set_title('Principal Component Analysis: PC{} and PC{}'.format(str(i), str(j)))
     plt.show()
 
+def compute_lda(X, verbose=False, **kwargs):
+    """ 
+        Compute LDA.
 
-def show_lda(X, y):
-    """ Perform and plot LDA 
+        :param X: Data 
+        :param verbose: Display additional information during run
+        :param **kwargs: Additional parameters for LDA (see sklearn doc)
+        :return: Tuple (lda, X) containing a LDA object (see sklearn doc) and the transformed data
+        :rtype: Tuple
     """
+    lda = LinearDiscriminantAnalysis(**kwargs)
+    X = lda.fit_transform(X)
 
-    y = np.array(y).T[0]
-    target_names = ['zero', 'one']  # TODO
+    return lda, X
 
-    lda = LinearDiscriminantAnalysis(n_components=2)
-    X_r = lda.fit(X, y).transform(X)
+def show_lda(X, y, verbose=False, **kwargs):
+    """ 
+        Plot LDA.
+
+        :param X: Data
+        :param y: Labels
+        :param verbose: Display additional information during run
+        :param **kwargs: Additional parameters for PCA (see sklearn doc)
+    """
+    _, X = compute_lda(X, verbose=verbose, **kwargs)
+    if y.shape[1] > 1:
+        target_names = list(y.columns)
+        y = np.where(y==1)[1]
+    else:
+        target_names = range(y_num)
 
     for i, target_name in zip([0, 1], target_names):
         plt.scatter(
-            X_r[y == i, 0], X_r[y == i, 1], alpha=.8, label=target_name)
+            X[y == i, 0], X[y == i, 1], alpha=.8, label=target_name)
 
     plt.legend(loc='best', shadow=False, scatterpoints=1)
     plt.title('LDA of dataset')
     plt.show()
 
 
-def show_tsne(X, y):
-    """ Perform and plot T-SNE algorithm 
-    """
+def compute_tsne(X, verbose=False, **kwargs):
+    """ 
+        Compute T-SNE.
 
-    #y = np.array(y).T[0]
+        :param X: Data 
+        :param verbose: Display additional information during run
+        :param **kwargs: Additional parameters for T-SNE (see sklearn doc)
+        :return: Tuple (tsne, X) containing a T-SNE object (see sklearn doc) and the transformed data
+        :rtype: Tuple
+    """
+    tsne = TSNE(**kwargs)
+    X = tsne.fit_transform(X)
+
+    return tsne, X 
+
+def show_tsne(X, y, verbose=False, **kwargs):
+    """ 
+        Plot T-SNE algorithm.
+
+        :param X: Data
+        :param y: Labels
+        :param verbose: Display additional information during run
+        :param **kwargs: Additional parameters for PCA (see sklearn doc)
+    """
     if y.shape[1] > 1:
         y_num = y.shape[1]
         target_names = list(y.columns)
@@ -456,15 +506,15 @@ def show_tsne(X, y):
         y_num = y.max()
         target_names = range(y_num)
 
-    X_embedded = TSNE(n_components=2).fit_transform(X)
+    _, X = compute_tsne(X, verbose=verbose, **kwargs)
 
     for i, target_name in zip(range(y_num), target_names):
         plt.scatter(
-            X_embedded[y == i, 0],
-            X_embedded[y == i, 1],
+            X[y == i, 0],
+            X[y == i, 1],
             alpha=.8,
             lw=2,
-            label=target_name)  # color=color,
+            label=target_name)
 
     plt.legend(loc='best', shadow=False, scatterpoints=1)
     plt.title('T-SNE of dataset')
