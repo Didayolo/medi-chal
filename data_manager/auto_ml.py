@@ -9,7 +9,7 @@ import seaborn as sns
 
 
 class AutoML():
-    def __init__(self, input_dir="", basename="", test_size=0, verbose=False):
+    def __init__(self, input_dir="", basename="", verbose=False):
         """
             Constructor.
             Recover all autoML files available and build the AutoML structure containing them.
@@ -18,10 +18,6 @@ class AutoML():
             :param basename: The name of the dataset (i.e. the prefix in the name of the files) 
                                 Example : files = ('iris.data', iris_feat.name', etc.)
                                           basename = 'iris'
-            :param test_size: If data is not splitted in autoML files, size of the test set.
-                                Example : files = (i.e 'iris.data')
-                                          test_size = 0.5
-                                -> Data will be splitted 50% in X_train and 50% in X_test
             :param verbose: Display additional information during run.
         """
         if os.path.isdir(input_dir):
@@ -39,7 +35,7 @@ class AutoML():
 
         self.data = dict()
         self.train_test = dict()
-        self.init_data(test_size)
+        self.init_data()
 
         self.info = dict()
         self.init_info(
@@ -100,17 +96,15 @@ class AutoML():
         else:
             raise OSError('{} file does not exist'.format(X_path))
 
+        y = None
         if y_path and os.path.exists(os.path.join(input_dir, y_path)):
             y = pd.read_csv(os.path.join(input_dir, y_path), header=y_header)
-        else:
-            y = None
+
         return cls.from_df(input_dir, basename, X, y)
 
-    def init_data(self, test_size):
+    def init_data(self):
         """
             Load .data autoML files in a dictionary.
-            Some specs : 
-                - If data is not splitted (i.e. no '_train.data', '_test.data'), load samples in X_train.
             
             :param test_size: If data is not splitted in autoML files, size of the test set.
                                 Example : files = (i.e 'iris.data')
@@ -123,30 +117,44 @@ class AutoML():
                 os.path.join(self.input_dir, self.basename + '_train.data')):
             self.train_test['X_train'] = self.load_data(
                 os.path.join(self.input_dir, self.basename + '_train.data'))
-            self.train_test['y_train'] = self.load_label(
-                os.path.join(self.input_dir, self.basename + '_train.solution'))
             self.train_test['X_test'] = self.load_data(
                 os.path.join(self.input_dir, self.basename + '_test.data'))
-            self.train_test['y_test'] = self.load_label(
-                os.path.join(self.input_dir, self.basename + '_test.solution'))
             self.data['X'] = self.train_test['X_train'] + self.train_test['X_test']
-            self.data['y'] = self.train_test['y_train'] + self.train_test['y_test']
+            if os.path.exists(
+                os.path.join(self.input_dir, self.basename + '_train.solution')):
+                self.train_test['y_train'] = self.load_label(
+                    os.path.join(self.input_dir, self.basename + '_train.solution'))
+                self.train_test['y_test'] = self.load_label(
+                    os.path.join(self.input_dir, self.basename + '_test.solution'))
+                self.data['y'] = self.train_test['y_train'] + self.train_test['y_test']
         elif os.path.exists(
                 os.path.join(self.input_dir, self.basename + '.data')):
             self.data['X'] = self.load_data(
                 os.path.join(self.input_dir, self.basename + '.data'))
-            if os.path.exists(os.path.join(self.input_dir, self.basename + '.solution')) \
-              and os.stat(os.path.join(self.input_dir, self.basename + '.solution')).st_size != 0:
+            if os.path.exists(os.path.join(self.input_dir, self.basename + '.solution')):
                 self.data['y'] = self.load_label(
                     os.path.join(self.input_dir, self.basename + '.solution'))
-                self.train_test['X_train'], self.train_test['X_test'], self.train_test['y_train'], self.train_test['y_test'] = \
-                 train_test_split(self.data['X'], self.data['y'], test_size=test_size)
-            else:
-                self.data['X'], self.data['y'], 
-                self.train_test['X_train'], self.train_test['y_train'],
-                self.train_test['X_test'], self.train_test['y_test'] = X, [], [], [], [], []
         else:
             raise OSError('No .data files in {}.'.format(self.input_dir))
+
+    def train_test_split(self, **kwargs):
+        if 'y' in self.data:
+            self.train_test['X_train'], self.train_test['X_test'], self.train_test['y_train'], self.train_test['y_test'] = \
+                 train_test_split(self.data['X'], self.data['y'], **kwargs)
+        else:
+            if 'test_size' in kwargs:
+                cut = np.floor(self.data['X'].shape[0] * (1 - kwargs.get('test_size')))
+            elif 'train_size' in kwargs:
+                cut = np.floot(self.data['X'].shape[0] * kwargs.get('train_size'))
+            if 'shuffle' in kwargs:
+                shuffle = kwargs.get('shuffle')
+                if shuffle:
+                    self.train_test['X_train'], self.train_test['X_test'] = np.random.permutation(self.data['X'])[:cut], \
+                                                                            np.random.permutation(self.data['X'][cut:])
+                else:
+                    self.train_test['X_train'], self.train_test['X_test'] = self.data['X'][:cut], self.data['X'][cut:]
+        return self.train_test
+
 
     def load_data(self, filepath):
         """
@@ -221,13 +229,12 @@ class AutoML():
                     os.path.join(self.input_dir, self.basename + '.solution'))
             else:
                 self.get_type_problem(
-                    os.path.join(self.input_dir,
-                                 self.basename + '_train.solution'))
+                    os.path.join(self.input_dir, self.basename + '_train.solution'))
 
             self.info['format'] = 'dense'
             self.info['is_sparse'] = 0
             self.info['train_num'], self.info['feat_num'] = self.train_test['X_train'].shape
-            if self.train_test['y_train'].size != 0 and self.train_test['y_test'].size != 0 and self.train_test['X_test'].size != 0:
+            if 'y_train' and 'y_test' and 'X_train' in self.train_test:
                 self.info['target_num'] = self.train_test['y_train'].shape[1]
                 self.info['test_num'] = self.train_test['X_test'].shape[0]
                 assert (self.info['train_num'] == self.train_test['y_train'].shape[0])
@@ -249,34 +256,35 @@ class AutoML():
 
     def get_data_as_df(self):
         """ 
-            Get data as a dictionary of pandas DataFrame 
+            Get data as a dictionary of pandas DataFrame.
             
             :return: Dictionary containing the data.
             :rtype: Dict
         """
         data = dict()
-        data['X'] = pd.DataFrame(
-            self.data['X'], columns=self.feat_name)
-        data['y'] = pd.DataFrame(
-            self.data['y'], columns=self.label_name)
+        data['X'] = pd.DataFrame(self.data['X'], columns=self.feat_name)
+        if 'y' in self.data:
+            data['y'] = pd.DataFrame(self.data['y'], columns=self.label_name)
         return data
 
     def get_train_test_as_df(self):
         """ 
-            Get train test data as a dictionary of pandas DataFrame 
+            Get train test data as a dictionary of pandas DataFrame.
             
             :return: Dictionary containing the training sets and test sets.
             :rtype: Dict
         """
         train_test = dict()
-        train_test['X_train'] = pd.DataFrame(
-            self.train_test['X_train'], columns=self.feat_name)
-        train_test['y_train'] = pd.DataFrame(
-            self.train_test['y_train'], columns=self.label_name)
-        train_test['X_test'] = pd.DataFrame(
-            self.train_test['X_test'], columns=self.feat_name)
-        train_test['y_test'] = pd.DataFrame(
-            self.train_test['y_test'], columns=self.label_name)
+        if 'X_train' and 'X_test' in train_test:
+            train_test['X_train'] = pd.DataFrame(
+                self.train_test['X_train'], columns=self.feat_name)
+            train_test['X_test'] = pd.DataFrame(
+                self.train_test['X_test'], columns=self.feat_name)
+            if 'y_train' and 'y_test' in train_test:
+                train_test['y_train'] = pd.DataFrame(
+                    self.train_test['y_train'], columns=self.label_name)
+                train_test['y_test'] = pd.DataFrame(
+                    self.train_test['y_test'], columns=self.label_name)
         return train_test
 
     def get_info(self):
@@ -292,30 +300,36 @@ class AutoML():
         if not os.path.isdir(out_path):
             os.makedirs(out_path)
 
-        if self.train_test['X_test'].size != 0 and self.train_test['y_train'].size != 0 and self.train_test['y_test'].size != 0:
-            print(os.path.join(out_path, out_name + '_train.data'))
+        write_array(
+            os.path.join(out_path, out_name + '.data'),
+            self.data['X'])
+        write_array(
+            os.path.join(out_path, out_name + '_feat.name'), 
+            self.feat_name)
+
+        if 'y' in self.data:
+            write_array(
+                os.path.join(out_path, out_name + '.solution'),
+                self.data['y'])
+
+        if 'X_train' and 'X_test' in self.train_test:
             write_array(
                 os.path.join(out_path, out_name + '_train.data'),
                 self.train_test['X_train'])
             write_array(
                 os.path.join(out_path, out_name + '_test.data'),
                 self.train_test['X_test'])
-            write_array(
-                os.path.join(out_path, out_name + '_test.solution'),
-                self.train_test['y_train'])
-            write_array(
-                os.path.join(out_path, out_name + '_test.solution'),
-                self.train_test['y_test'])
-            write_array(
-                os.path.join(out_path, out_name + '_label.name'),
-                self.label_name)
-        else:
-            write_array(
-                os.path.join(out_path, out_name + '.data'),
-                self.train_test['X_train'])
+            if 'y_train' and 'y_test' in self.train_test:
+                write_array(
+                    os.path.join(out_path, out_name + '_test.solution'),
+                    self.train_test['y_train'])
+                write_array(
+                    os.path.join(out_path, out_name + '_test.solution'),
+                    self.train_test['y_test'])
+                write_array(
+                    os.path.join(out_path, out_name + '_label.name'),
+                    self.label_name)
 
-        write_array(
-            os.path.join(out_path, out_name + '_feat.name'), self.feat_name)
         with open(os.path.join(out_path, out_name + '_public.info'), 'w') as f:
             for key, item in self.info.items():
                 f.write(str(key))
@@ -394,8 +408,7 @@ class AutoML():
 			- skewness_max: Maximum skewness over features
 			- skewness_mean: Average skewness over features
 		"""
-        self.descriptors['ratio'] = int(self.info['feat_num']) / int(
-            self.info['train_num'])
+        self.descriptors['ratio'] = int(self.info['feat_num']) / int(self.info['train_num'])
             
         skewness = self.get_train_test_as_df()['X_train'].skew()
         self.descriptors['skewness_min'] = skewness.min()

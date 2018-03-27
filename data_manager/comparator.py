@@ -19,6 +19,9 @@ class Comparator():
         assert(ds1.info['feat_num'] == ds2.info['feat_num'])
 
     def t_test(self):
+        """
+            Perform Student's t-test.
+        """
         return ttest_ind(self.ds1.data['X'], self.ds2.data['X'])
          
     def compare_descriptors(self):
