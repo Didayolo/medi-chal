@@ -11,7 +11,7 @@ import seaborn as sns
 class AutoML():
     def __init__(self, input_dir="", basename="", test_size=0, verbose=False):
         """
-            Constructor 
+            Constructor.
             Recover all autoML files available and build the AutoML structure containing them.
 
             :param input_dir: The directory where the autoML files are stored.
@@ -38,6 +38,7 @@ class AutoML():
             raise OSError('No .data files found')
 
         self.data = dict()
+        self.train_test = dict()
         self.init_data(test_size)
 
         self.info = dict()
@@ -120,28 +121,30 @@ class AutoML():
         """
         if os.path.exists(
                 os.path.join(self.input_dir, self.basename + '_train.data')):
-            self.data['X_train'] = self.load_data(
+            self.train_test['X_train'] = self.load_data(
                 os.path.join(self.input_dir, self.basename + '_train.data'))
-            self.data['y_train'] = self.load_label(
-                os.path.join(self.input_dir,
-                             self.basename + '_train.solution'))
-            self.data['X_test'] = self.load_data(
+            self.train_test['y_train'] = self.load_label(
+                os.path.join(self.input_dir, self.basename + '_train.solution'))
+            self.train_test['X_test'] = self.load_data(
                 os.path.join(self.input_dir, self.basename + '_test.data'))
-            self.data['y_test'] = self.load_label(
+            self.train_test['y_test'] = self.load_label(
                 os.path.join(self.input_dir, self.basename + '_test.solution'))
+            self.data['X'] = self.train_test['X_train'] + self.train_test['X_test']
+            self.data['y'] = self.train_test['y_train'] + self.train_test['y_test']
         elif os.path.exists(
                 os.path.join(self.input_dir, self.basename + '.data')):
-            X = self.load_data(
+            self.data['X'] = self.load_data(
                 os.path.join(self.input_dir, self.basename + '.data'))
             if os.path.exists(os.path.join(self.input_dir, self.basename + '.solution')) \
               and os.stat(os.path.join(self.input_dir, self.basename + '.solution')).st_size != 0:
-                y = self.load_label(
+                self.data['y'] = self.load_label(
                     os.path.join(self.input_dir, self.basename + '.solution'))
-                self.data['X_train'], self.data['X_test'], self.data['y_train'], self.data['y_test'] = \
-                 train_test_split(X, y, test_size=test_size)
+                self.train_test['X_train'], self.train_test['X_test'], self.train_test['y_train'], self.train_test['y_test'] = \
+                 train_test_split(self.data['X'], self.data['y'], test_size=test_size)
             else:
-                self.data['X_train'], self.data['X_test'], self.data[
-                    'y_train'], self.data['y_test'] = X, [], [], []
+                self.data['X'], self.data['y'], 
+                self.train_test['X_train'], self.train_test['y_train'],
+                self.train_test['X_test'], self.train_test['y_test'] = X, [], [], [], [], []
         else:
             raise OSError('No .data files in {}.'.format(self.input_dir))
 
@@ -223,25 +226,21 @@ class AutoML():
 
             self.info['format'] = 'dense'
             self.info['is_sparse'] = 0
-            self.info['train_num'], self.info['feat_num'] = self.data[
-                'X_train'].shape
-            if self.data['y_train'].size != 0 and self.data['y_test'].size != 0 and self.data['X_test'].size != 0:
-                self.info['target_num'] = self.data['y_train'].shape[1]
-                self.info['test_num'] = self.data['X_test'].shape[0]
-                assert (
-                    self.info['train_num'] == self.data['y_train'].shape[0])
-                assert (self.info['feat_num'] == self.data['X_test'].shape[1])
-                assert (self.info['test_num'] == self.data['y_test'].shape[0])
-                assert (
-                    self.info['target_num'] == self.info['y_test'].shape[1])
+            self.info['train_num'], self.info['feat_num'] = self.train_test['X_train'].shape
+            if self.train_test['y_train'].size != 0 and self.train_test['y_test'].size != 0 and self.train_test['X_test'].size != 0:
+                self.info['target_num'] = self.train_test['y_train'].shape[1]
+                self.info['test_num'] = self.train_test['X_test'].shape[0]
+                assert (self.info['train_num'] == self.train_test['y_train'].shape[0])
+                assert (self.info['feat_num'] == self.train_test['X_test'].shape[1])
+                assert (self.info['test_num'] == self.train_test['y_test'].shape[0])
+                assert (self.info['target_num'] == self.info['y_test'].shape[1])
             self.info['usage'] = 'No info file'
             self.info['name'] = self.basename
             self.info['has_categorical'] = 0
             self.info['has_missing'] = 0
             self.info['feat_type'] = 'Mixed'
             self.info['time_budget'] = 600
-            self.info['metric'] = 'r2_metric' if self.info[
-                'task'] == 'regression' else 'auc_metric'
+            self.info['metric'] = 'r2_metric' if self.info['task'] == 'regression' else 'auc_metric'
 
         return self.info
 
@@ -256,15 +255,29 @@ class AutoML():
             :rtype: Dict
         """
         data = dict()
-        data['X_train'] = pd.DataFrame(
-            self.data['X_train'], columns=self.feat_name)
-        data['y_train'] = pd.DataFrame(
-            self.data['y_train'], columns=self.label_name)
-        data['X_test'] = pd.DataFrame(
-            self.data['X_test'], columns=self.feat_name)
-        data['y_test'] = pd.DataFrame(
-            self.data['y_test'], columns=self.label_name)
+        data['X'] = pd.DataFrame(
+            self.data['X'], columns=self.feat_name)
+        data['y'] = pd.DataFrame(
+            self.data['y'], columns=self.label_name)
         return data
+
+    def get_train_test_as_df(self):
+        """ 
+            Get train test data as a dictionary of pandas DataFrame 
+            
+            :return: Dictionary containing the training sets and test sets.
+            :rtype: Dict
+        """
+        train_test = dict()
+        train_test['X_train'] = pd.DataFrame(
+            self.train_test['X_train'], columns=self.feat_name)
+        train_test['y_train'] = pd.DataFrame(
+            self.train_test['y_train'], columns=self.label_name)
+        train_test['X_test'] = pd.DataFrame(
+            self.train_test['X_test'], columns=self.feat_name)
+        train_test['y_test'] = pd.DataFrame(
+            self.train_test['y_test'], columns=self.label_name)
+        return train_test
 
     def get_info(self):
         return self.info
@@ -276,27 +289,27 @@ class AutoML():
         if not os.path.isdir(out_path):
             os.makedirs(out_path)
 
-        if self.data['X_test'].size != 0 and self.data['y_train'].size != 0 and self.data['y_test'].size != 0:
+        if self.train_test['X_test'].size != 0 and self.train_test['y_train'].size != 0 and self.train_test['y_test'].size != 0:
             print(os.path.join(out_path, out_name + '_train.data'))
             write_array(
                 os.path.join(out_path, out_name + '_train.data'),
-                self.data['X_train'])
+                self.train_test['X_train'])
             write_array(
                 os.path.join(out_path, out_name + '_test.data'),
-                self.data['X_test'])
+                self.train_test['X_test'])
             write_array(
                 os.path.join(out_path, out_name + '_test.solution'),
-                self.data['y_train'])
+                self.train_test['y_train'])
             write_array(
                 os.path.join(out_path, out_name + '_test.solution'),
-                self.data['y_test'])
+                self.train_test['y_test'])
             write_array(
                 os.path.join(out_path, out_name + '_label.name'),
                 self.label_name)
         else:
             write_array(
                 os.path.join(out_path, out_name + '.data'),
-                self.data['X_train'])
+                self.train_test['X_train'])
 
         write_array(
             os.path.join(out_path, out_name + '_feat.name'), self.feat_name)
@@ -315,7 +328,7 @@ class AutoML():
             :return: Type of the problem stored in the info dict attribute as 'task'
             :rtype: str
         """
-        if 'task' not in self.info.keys() and self.data['y_train'].size != 0:
+        if 'task' not in self.info.keys() and self.train_test['y_train'].size != 0:
             solution = pd.read_csv(
                 solution_filepath, sep=' ', header=None).values
             target_num = solution.shape[1]
@@ -359,13 +372,16 @@ class AutoML():
             :return: Dictionnary containing the preprocessed data as Pandas DataFrame
             :rtype: Dict
 		"""
-        processed_data = dict()
+        processed_data, processed_train_test = dict(), dict()
         data_df = self.get_data_as_df()
+        train_test_df = self.get_train_test_as_df()
 
         for k in list(data_df.keys()):
             processed_data[k] = preprocessing(data_df[k])
+        for k in list(train_test_df.keys()):
+            processed_train_test[k] = preprocessing(train_test_df[k])
 
-        return processed_data
+        return processed_data, processed_train_test
 
     def compute_descriptors(self):
         """ 
@@ -378,7 +394,7 @@ class AutoML():
         self.descriptors['ratio'] = int(self.info['feat_num']) / int(
             self.info['train_num'])
             
-        skewness = self.get_data_as_df()['X_train'].skew()
+        skewness = self.get_train_test_as_df()['X_train'].skew()
         self.descriptors['skewness_min'] = skewness.min()
         self.descriptors['skewness_max'] = skewness.max()
         self.descriptors['skewness_mean'] = skewness.mean()
@@ -419,32 +435,31 @@ class AutoML():
             print('{}: {}'.format(key, value))
 
         # Plots
-
         x_sets = ['X_train']
         y_sets = ['y_train']
         # If there is a test set
-        if (len(self.data['X_test']) > 0):
+        if (len(self.train_test['X_test']) > 0):
             x_sets.append('X_test')
             y_sets.append('y_test')
 
-        data_df = self.get_data_as_df()
+        train_test = self.get_train_test_as_df()
 
         print('Scatter plot matrix')
         sns.set(style="ticks")
         for x in x_sets:
             print(x)
-            sns.pairplot(data_df[x])
+            sns.pairplot(train_test[x])
             plt.show()
 
         print('Classes distribution')
         for y in y_sets:
             print(y)
-            show_classes(data_df[y])
+            show_classes(train_test[y])
 
         print('Correlation matrix')
         for x in x_sets:
             print(x)
-            show_correlation(data_df[x])
+            show_correlation(train_test[x])
 
         print('Hierarchical clustering heatmap')
         row_method = 'average'
@@ -454,14 +469,14 @@ class AutoML():
         color_gradient = 'coolwarm'  #'red_white_blue
         for x in x_sets:
             print(x)
-            heatmap(data_df[x], row_method, column_method, row_metric,
+            heatmap(train_test[x], row_method, column_method, row_metric,
                     column_metric, color_gradient)
 
         print('Principal components analysis')
         for i in range(len(x_sets)):
             print(x_sets[i])
             print(y_sets[i])
-            show_pca(data_df[x_sets[i]], data_df[y_sets[i]])
+            show_pca(train_test[x_sets[i]], train_test[y_sets[i]])
 
         # Linear discriminant analysis
         #if int(self.info['target_num']) > 2: # or label_num ?
@@ -470,10 +485,10 @@ class AutoML():
             for i in range(len(x_sets)):
                 print(x_sets[i])
                 print(y_sets[i])
-                show_lda(data_df[x_sets[i]], data_df[y_sets[i]])
+                show_lda(train_test[x_sets[i]], train_test[y_sets[i]])
 
         print('T-distributed stochastic neighbor embedding')
         for i in range(len(x_sets)):
             print(x_sets[i])
             print(y_sets[i])
-            show_tsne(data_df[x_sets[i]], data_df[y_sets[i]])
+            show_tsne(train_test[x_sets[i]], train_test[y_sets[i]])

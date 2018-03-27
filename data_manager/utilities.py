@@ -393,45 +393,33 @@ def compute_pca(X, verbose=False, **kwargs):
         
     return pca, X
 
-def show_pca(X, y, max_plot=1, verbose=False, **kwargs):
+def show_pca(X, y, i=1, j=2, verbose=False, **kwargs):
     """ 
         Plot PCA.
 
         :param X: Data
         :param y: Labels
-        :param max_plot: Number of graphs PC_i vs PC_j displayed
+        :param i: i_th component of the PCA
+        :param j: j_th component of the PCA
         :param verbose: Display additional information during run
         :param **kwargs: Additional parameters for PCA (see sklearn doc)
     """
-    _, X = compute_pca(X, verbose, **kwargs)
-    if y.shape[1] > 1:
-        y_num = y.shape[1]
-        target_names = list(y.columns)
-        y = np.where(y==1)[1]
-    else:
-        y_num = y.max()
-        target_names = range(y_num)
-    
-    num_plot = min(int(X.shape[1] * (X.shape[1] - 1) / 2), max_plot)
-    
-    if num_plot == 1:
-        for label in range(y_num):
-            plt.scatter(X[y == label, 0], X[y == label, 1], alpha=.8, lw=2, label=target_names[label])
-        plt.xlabel('PC1')
-        plt.ylabel('PC2')
-        plt.legend(loc='best', shadow=False, scatterpoints=1)
-        plt.title('Principal Component Analysis: PC1 and PC2')
-    else:
-        fig, ax = plt.subplots(num_plot + 1, 1, figsize=(10, 15))
-        for p, (i, j) in enumerate(combinations(range(X.shape[1]), 2)):
-            if p <= num_plot:
-                for label in range(y_num):
-                    ax[p].scatter(X[y == label, i], X[y == label, j], alpha=.8, lw=2, label=target_names[label])
+    pca, X = compute_pca(X, verbose, **kwargs)
 
-                ax[p].set_xlabel('PC '+str(i))
-                ax[p].set_ylabel('PC '+str(j))
-                ax[p].legend(loc='best', shadow=False, scatterpoints=1)
-                ax[p].set_title('Principal Component Analysis: PC{} and PC{}'.format(str(i), str(j)))
+    assert(i <= pca.n_components_ and j <= pca.n_components_ and i != j)
+
+    if y.ndim > 1:
+        y = np.where(y==1)[1]
+
+    target_num = len(np.unique(y))
+    target_names = range(target_num)
+    
+    for label in range(target_num):
+        plt.scatter(X[y == label, i-1], X[y == label, j-1], alpha=.8, lw=2, label=target_names[label])
+    plt.xlabel('PC '+str(i))
+    plt.ylabel('PC '+str(j))
+    plt.legend(loc='best', shadow=False, scatterpoints=1)
+    plt.title('Principal Component Analysis: PC{} and PC{}'.format(str(i), str(j)))
     plt.show()
 
 def compute_lda(X, verbose=False, **kwargs):
@@ -460,14 +448,13 @@ def show_lda(X, y, verbose=False, **kwargs):
     """
     _, X = compute_lda(X, verbose=verbose, **kwargs)
     if y.shape[1] > 1:
-        target_names = list(y.columns)
         y = np.where(y==1)[1]
-    else:
-        target_names = range(y_num)
 
-    for i, target_name in zip([0, 1], target_names):
-        plt.scatter(
-            X[y == i, 0], X[y == i, 1], alpha=.8, label=target_name)
+    target_num = len(np.unique(y))
+    target_names = range(target_num)
+
+    for label in range(target_num):
+        plt.scatter(X[y == label, 0], X[y == label, 1], alpha=.8, lw=2, label=target_names[label])
 
     plt.legend(loc='best', shadow=False, scatterpoints=1)
     plt.title('LDA of dataset')
@@ -489,33 +476,28 @@ def compute_tsne(X, verbose=False, **kwargs):
 
     return tsne, X 
 
-def show_tsne(X, y, verbose=False, **kwargs):
+def show_tsne(X, y, i=1, j=2, verbose=False, **kwargs):
     """ 
-        Plot T-SNE algorithm.
+        Plot T-SNE.
 
         :param X: Data
         :param y: Labels
+        :param i: i_th component of the T-SNE
+        :param j: j_th component of the T-SNE
         :param verbose: Display additional information during run
-        :param **kwargs: Additional parameters for PCA (see sklearn doc)
+        :param **kwargs: Additional parameters for T-SNE (see sklearn doc)
     """
+    tsne, X = compute_tsne(X, verbose=verbose, **kwargs)
+    assert(i <= tsne.embedding_.shape[1] and j <= tsne.embedding_.shape[1] and i != j)
+
     if y.shape[1] > 1:
-        y_num = y.shape[1]
-        target_names = list(y.columns)
         y = np.where(y==1)[1]
-    else:
-        y_num = y.max()
-        target_names = range(y_num)
 
-    _, X = compute_tsne(X, verbose=verbose, **kwargs)
+    target_num = len(np.unique(y))
+    target_names = range(target_num)
 
-    for i, target_name in zip(range(y_num), target_names):
-        plt.scatter(
-            X[y == i, 0],
-            X[y == i, 1],
-            alpha=.8,
-            lw=2,
-            label=target_name)
-
+    for label in range(target_num):
+        plt.scatter(X[y == label, i-1], X[y == label, j-1], alpha=.8, lw=2, label=target_names[label])
     plt.legend(loc='best', shadow=False, scatterpoints=1)
-    plt.title('T-SNE of dataset')
+    plt.title('T-SNE: TC{} and TC{}'.format(str(i), str(j)))
     plt.show()
