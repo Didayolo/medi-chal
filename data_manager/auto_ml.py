@@ -281,6 +281,9 @@ class AutoML():
 
     def get_info(self):
         return self.info
+        
+    def get_descriptors(self):
+        return self.descriptors
 
     def save(self, out_path, out_name):
         def write_array(path, X):
