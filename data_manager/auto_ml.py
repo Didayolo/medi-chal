@@ -275,7 +275,7 @@ class AutoML():
             :rtype: Dict
         """
         train_test = dict()
-        if 'X_train' and 'X_test' in train_test:
+        if 'X_train' and 'X_test' in self.train_test:
             train_test['X_train'] = pd.DataFrame(
                 self.train_test['X_train'], columns=self.feat_name)
             train_test['X_test'] = pd.DataFrame(
