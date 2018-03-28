@@ -27,8 +27,8 @@ class Comparator():
     def compare_descriptors(self):
         """ Idea : automatic comparison between descriptors
         """
-        descriptors1 = self.ds1.get_descriptors()
-        descriptors2 = self.ds2.get_descriptors()
+        descriptors1 = self.ds1.descriptors
+        descriptors2 = self.ds2.descriptors
         # For each descriptor
         for k in list(descriptors1.keys()):
             # Distance

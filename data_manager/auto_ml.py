@@ -251,9 +251,6 @@ class AutoML():
 
         return self.info
 
-    def get_data(self):
-        return self.data
-
     def get_data_as_df(self):
         """ 
             Get data as a dictionary of pandas DataFrame.
@@ -286,12 +283,6 @@ class AutoML():
                 train_test['y_test'] = pd.DataFrame(
                     self.train_test['y_test'], columns=self.label_name)
         return train_test
-
-    def get_info(self):
-        return self.info
-        
-    def get_descriptors(self):
-        return self.descriptors
 
     def save(self, out_path, out_name):
         def write_array(path, X):
