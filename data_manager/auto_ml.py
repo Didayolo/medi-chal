@@ -130,10 +130,12 @@ class AutoML():
         elif os.path.exists(
                 os.path.join(self.input_dir, self.basename + '.data')):
             self.data['X'] = self.load_data(
-                os.path.join(self.input_dir, self.basename + '.data'))
+                os.path.join(self.input_dir, self.basename + '.data'))  
             if os.path.exists(os.path.join(self.input_dir, self.basename + '.solution')):
                 self.data['y'] = self.load_label(
                     os.path.join(self.input_dir, self.basename + '.solution'))
+            self.train_test_split(test_size=0.2) # TODO parameter
+            
         else:
             raise OSError('No .data files in {}.'.format(self.input_dir))
 
@@ -240,7 +242,7 @@ class AutoML():
                 assert (self.info['train_num'] == self.train_test['y_train'].shape[0])
                 assert (self.info['feat_num'] == self.train_test['X_test'].shape[1])
                 assert (self.info['test_num'] == self.train_test['y_test'].shape[0])
-                assert (self.info['target_num'] == self.info['y_test'].shape[1])
+                assert (self.info['target_num'] == self.train_test['y_test'].shape[1])
             self.info['usage'] = 'No info file'
             self.info['name'] = self.basename
             self.info['has_categorical'] = 0
@@ -277,7 +279,7 @@ class AutoML():
                 self.train_test['X_train'], columns=self.feat_name)
             train_test['X_test'] = pd.DataFrame(
                 self.train_test['X_test'], columns=self.feat_name)
-            if 'y_train' and 'y_test' in train_test:
+            if 'y_train' and 'y_test' in self.train_test:
                 train_test['y_train'] = pd.DataFrame(
                     self.train_test['y_train'], columns=self.label_name)
                 train_test['y_test'] = pd.DataFrame(
