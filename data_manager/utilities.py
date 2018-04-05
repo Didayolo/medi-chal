@@ -26,6 +26,12 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 # T-SNE
 from sklearn.manifold import TSNE
 
+# Kolmogorov-Smirnov
+from scipy.stats import ks_2samp
+
+# Chi-square
+from scipy.stats import chi2_contingency
+
 
 def is_numeric(variable):
     """ Test if a variable (DataFrame column) is numeric or categorical 
@@ -51,7 +57,7 @@ def preprocessing(data):
     for column in columns:
 
         # For numerical variables
-        if is_numeric(data[column]):
+        if is_numeric(data[column]): # TODO use feat_type
 
             # Replace NaN with the median of the variable value
             data[column] = data[column].fillna(data[column].median())
@@ -501,3 +507,13 @@ def show_tsne(X, y, i=1, j=2, verbose=False, **kwargs):
     plt.legend(loc='best', shadow=False, scatterpoints=1)
     plt.title('T-SNE: TC{} and TC{}'.format(str(i), str(j)))
     plt.show()
+    
+def chi_square(col1, col2):
+    """ Performs Chi2 on two DataFrame columns
+    """
+    return chi2_contingency([col1, col2])
+        
+def kolmogorov_smirnov(col1, col2):
+    """ Performs Kolmogorov-Smirnov test on two DataFrame columns
+    """
+    return ks_2samp(col1, col2)

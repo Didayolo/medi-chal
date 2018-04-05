@@ -3,10 +3,10 @@ import numpy as np
 import os
 from sklearn.model_selection import train_test_split
 import pandas as pd
+from IPython.display import display
 from utilities import *
 import matplotlib.pyplot as plt
 import seaborn as sns
-
 
 class AutoML():
     def __init__(self, input_dir="", basename="", verbose=False):
@@ -37,17 +37,22 @@ class AutoML():
         self.train_test = dict()
         self.init_data()
 
+        # autoML info
         self.info = dict()
         self.init_info(
             os.path.join(self.input_dir, self.basename + '_public.info'))
 
-        self.feat_type = self.load_type(
-            os.path.join(self.input_dir, self.basename + '_feat.type'))
         self.feat_name = self.load_name(
             os.path.join(self.input_dir, self.basename + '_feat.name'))
         self.label_name = self.load_name(
             os.path.join(self.input_dir, self.basename + '_label.name'))
+            
+        # Type of each variable
+        self.feat_type = self.load_type(
+            os.path.join(self.input_dir, self.basename + '_feat.type'))
+        self.is_numerical = self.compute_feat_type() # to prevent error with functions that needs it
 
+        # Meta-features
         self.descriptors = dict()
         self.compute_descriptors()
 
@@ -195,14 +200,14 @@ class AutoML():
     def load_type(self, filepath):
         """
             Load a _feat.type autoML file in an array.
-            If None, return an array of variables ['Unknown', ..., 'Unknown'].
+            If None, compute it.
                    
             :param filepath: Path of the file.
             :return: Array containing the data types. 
             :rtype: Numpy Array
         """
         return pd.read_csv(filepath, header=None).values.ravel() if os.path.exists(filepath) \
-          else [self.info['feat_type']] * self.info['feat_num']
+          else self.compute_feat_type()
 
     def init_info(self, filepath):
         """
@@ -247,11 +252,14 @@ class AutoML():
             self.info['name'] = self.basename
             self.info['has_categorical'] = 0
             self.info['has_missing'] = 0
-            self.info['feat_type'] = 'Mixed'
+            self.info['feat_type'] = 'mixed'
             self.info['time_budget'] = 600
             self.info['metric'] = 'r2_metric' if self.info['task'] == 'regression' else 'auc_metric'
 
         return self.info
+
+    def get_feat_type(self):
+        return self.feat_type
 
     def get_data_as_df(self):
         """ 
@@ -351,19 +359,19 @@ class AutoML():
                     self.info['label_num'] = nbr_unique_values
                     if nbr_unique_values == 2:
                         self.info['task'] = 'binary.classification'
-                        self.info['target_type'] = 'Binary'
+                        self.info['target_type'] = 'binary'
                     else:
                         self.info['task'] = 'multiclass.classification'
-                        self.info['target_type'] = 'Categorical'
+                        self.info['target_type'] = 'categorical'
                 else:
                     # Regression
                     self.info['label_num'] = 0
                     self.info['task'] = 'regression'
-                    self.info['target_type'] = 'Numerical'
+                    self.info['target_type'] = 'numerical'
             else:
                 # Multilabel or multiclass
                 self.info['label_num'] = target_num
-                self.info['target_type'] = 'Binary'
+                self.info['target_type'] = 'binary'
                 if any(item > 1 for item in map(np.sum, solution.astype(int))):
                     self.info['task'] = 'multilabel.classification'
                 else:
@@ -393,6 +401,22 @@ class AutoML():
 
         return processed_data, processed_train_test
 
+    def compute_feat_type(self):
+        """ For each variable, compute if it is numerical, categorical, etc.
+        """
+        feat_type = []
+        
+        data = self.get_data_as_df()['X']
+        columns = data.columns.values
+        for column in columns:
+            # For numerical variables
+            if is_numeric(data[column]):
+                feat_type.append('numerical')
+            else:
+                feat_type.append('mixed')
+                
+        return feat_type
+
     def compute_descriptors(self):
         """ 
             Compute descriptors of the dataset and store them in self.descriptors dictionary.
@@ -419,8 +443,13 @@ class AutoML():
                 value = value.capitalize().replace('_', ' ').replace('.', ' ')
 
             print('{}: {}'.format(key, value))
+          
+    #def show_feat_type(self):
+    #    """ Display type of each variable (numerical, categorical, etc.)
+    #    """
+    #    display(self.feat_type)
 
-    def show_descriptors(self):
+    def show_descriptors(self, train_test=None):
         """ 
             Show descriptors of the dataset 
 			- Dataset ratio
@@ -451,7 +480,8 @@ class AutoML():
             x_sets.append('X_test')
             y_sets.append('y_test')
 
-        train_test = self.get_train_test_as_df()
+        if train_test == None:
+            train_test = self.get_train_test_as_df()
 
         print('Scatter plot matrix')
         sns.set(style="ticks")
