@@ -33,9 +33,14 @@ class AutoML():
         else:
             raise OSError('No .data files found')
 
+        # Data
         self.data = dict()
         self.train_test = dict()
         self.init_data()
+        
+        # Processed data
+        self.processed_data = None # None while no processing has been done
+        self.processed_train_test = None
 
         # autoML info
         self.info = dict()
@@ -149,17 +154,23 @@ class AutoML():
             self.train_test['X_train'], self.train_test['X_test'], self.train_test['y_train'], self.train_test['y_test'] = \
                  train_test_split(self.data['X'], self.data['y'], **kwargs)
         else:
+        
+            cut = int(np.floor(self.data['X'].shape[0] * 0.8))
             if 'test_size' in kwargs:
-                cut = np.floor(self.data['X'].shape[0] * (1 - kwargs.get('test_size')))
+                cut = int(np.floor(self.data['X'].shape[0] * (1 - kwargs.get('test_size'))))
             elif 'train_size' in kwargs:
-                cut = np.floot(self.data['X'].shape[0] * kwargs.get('train_size'))
+                cut = int(np.floot(self.data['X'].shape[0] * kwargs.get('train_size')))
+            
+            shuffle = True
             if 'shuffle' in kwargs:
                 shuffle = kwargs.get('shuffle')
-                if shuffle:
-                    self.train_test['X_train'], self.train_test['X_test'] = np.random.permutation(self.data['X'])[:cut], \
-                                                                            np.random.permutation(self.data['X'][cut:])
-                else:
-                    self.train_test['X_train'], self.train_test['X_test'] = self.data['X'][:cut], self.data['X'][cut:]
+                
+            if shuffle:
+                self.train_test['X_train'], self.train_test['X_test'] = np.random.permutation(self.data['X'])[:cut], \
+                                                                        np.random.permutation(self.data['X'][cut:])
+            else:
+                self.train_test['X_train'], self.train_test['X_test'] = self.data['X'][:cut], self.data['X'][cut:]
+                
         return self.train_test
 
 
@@ -241,7 +252,7 @@ class AutoML():
             self.info['format'] = 'dense'
             self.info['is_sparse'] = 0
             self.info['train_num'], self.info['feat_num'] = self.train_test['X_train'].shape
-            if 'y_train' and 'y_test' and 'X_train' in self.train_test:
+            if ('y_train' in self.train_test) and ('y_test' in self.train_test) and ('X_train' in self.train_test):
                 self.info['target_num'] = self.train_test['y_train'].shape[1]
                 self.info['test_num'] = self.train_test['X_test'].shape[0]
                 assert (self.info['train_num'] == self.train_test['y_train'].shape[0])
@@ -346,7 +357,7 @@ class AutoML():
             :return: Type of the problem stored in the info dict attribute as 'task'
             :rtype: str
         """
-        if 'task' not in self.info.keys() and self.train_test['y_train'].size != 0:
+        if 'task' not in self.info.keys() and 'y_train' in self.train_test:
             solution = pd.read_csv(
                 solution_filepath, sep=' ', header=None).values
             target_num = solution.shape[1]
@@ -383,21 +394,26 @@ class AutoML():
     def get_processed_data(self):
         """ 
             Preprocess data.
-			- Missing values inputation
-			- +Inf and -Inf replaced by maximum and minimum
-			- One hot encoding for categorical variables
+            - Missing values inputation
+            - +Inf and -Inf replaced by maximum and minimum
+            - One hot encoding for categorical variables
 
             :return: Dictionnary containing the preprocessed data as Pandas DataFrame
             :rtype: Dict
-		"""
-        processed_data, processed_train_test = dict(), dict()
-        data_df = self.get_data_as_df()
-        train_test_df = self.get_train_test_as_df()
+        """
+        if self.processed_data == None:
+            processed_data, processed_train_test = dict(), dict()
+            data_df = self.get_data_as_df()
+            train_test_df = self.get_train_test_as_df()
 
-        for k in list(data_df.keys()):
-            processed_data[k] = preprocessing(data_df[k])
-        for k in list(train_test_df.keys()):
-            processed_train_test[k] = preprocessing(train_test_df[k])
+            for k in list(data_df.keys()):
+                processed_data[k] = preprocessing(data_df[k])
+            for k in list(train_test_df.keys()):
+                processed_train_test[k] = preprocessing(train_test_df[k])
+            
+        else:
+            processed_data = self.processed_data
+            processed_train_test = self.processed_train_test
 
         return processed_data, processed_train_test
 
@@ -420,11 +436,11 @@ class AutoML():
     def compute_descriptors(self):
         """ 
             Compute descriptors of the dataset and store them in self.descriptors dictionary.
-			- ratio: Dataset ratio
-			- skewness_min: Minimum skewness over features 
-			- skewness_max: Maximum skewness over features
-			- skewness_mean: Average skewness over features
-		"""
+            - ratio: Dataset ratio
+            - skewness_min: Minimum skewness over features 
+            - skewness_max: Maximum skewness over features
+            - skewness_mean: Average skewness over features
+        """
         self.descriptors['ratio'] = int(self.info['feat_num']) / int(self.info['train_num'])
             
         skewness = self.get_train_test_as_df()['X_train'].skew()
@@ -452,15 +468,15 @@ class AutoML():
     def show_descriptors(self, train_test=None):
         """ 
             Show descriptors of the dataset 
-			- Dataset ratio
-			- Scatter plot features matrix
-			- Classes distribution
-			- Correlation matrix
-			- Hierarchical clustering heatmap
-			- First two principal components
-			- First two LDA components
-			- T-SNE plot
-		"""
+            - Dataset ratio
+            - Scatter plot features matrix
+            - Classes distribution
+            - Correlation matrix
+            - Hierarchical clustering heatmap
+            - First two principal components
+            - First two LDA components
+            - T-SNE plot
+        """
 
         # Text
 
@@ -474,21 +490,28 @@ class AutoML():
 
         # Plots
         x_sets = ['X_train']
-        y_sets = ['y_train']
+        y_sets = []
+        
+        if 'y_train' in self.train_test:
+            y_sets.append('y_train')
+        
         # If there is a test set
         if (len(self.train_test['X_test']) > 0):
             x_sets.append('X_test')
+            
+        if 'y_train' in self.train_test:
             y_sets.append('y_test')
 
         if train_test == None:
-            train_test = self.get_train_test_as_df()
+            train_test = self.get_train_test_as_df() # get processed data ?
 
-        print('Scatter plot matrix')
-        sns.set(style="ticks")
-        for x in x_sets:
-            print(x)
-            sns.pairplot(train_test[x])
-            plt.show()
+        if self.info['feat_num'] < 20: # TODO selection, plot with y
+            print('Scatter plot matrix')
+            sns.set(style="ticks")
+            for x in x_sets:
+                print(x)
+                sns.pairplot(train_test[x]) 
+                plt.show()
 
         print('Classes distribution')
         for y in y_sets:
