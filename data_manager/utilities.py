@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import pandas as pd
+from IPython.display import display, Markdown
 
 # Hierarchical clustering
 import matplotlib as mpl
@@ -32,6 +33,10 @@ from scipy.stats import ks_2samp
 # Chi-square
 from scipy.stats import chi2_contingency
 
+def printmd(string):
+    """ Print Markdown string
+    """
+    display(Markdown(string))
 
 def is_numeric(variable):
     """ Test if a variable (DataFrame column) is numeric or categorical 

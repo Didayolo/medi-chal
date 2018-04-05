@@ -3,7 +3,6 @@ import numpy as np
 import os
 from sklearn.model_selection import train_test_split
 import pandas as pd
-from IPython.display import display
 from utilities import *
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -402,20 +401,16 @@ class AutoML():
             :rtype: Dict
         """
         if self.processed_data == None:
-            processed_data, processed_train_test = dict(), dict()
+            self.processed_data, self.processed_train_test = dict(), dict()
             data_df = self.get_data_as_df()
             train_test_df = self.get_train_test_as_df()
 
             for k in list(data_df.keys()):
-                processed_data[k] = preprocessing(data_df[k])
+                self.processed_data[k] = preprocessing(data_df[k])
             for k in list(train_test_df.keys()):
-                processed_train_test[k] = preprocessing(train_test_df[k])
-            
-        else:
-            processed_data = self.processed_data
-            processed_train_test = self.processed_train_test
+                self.processed_train_test[k] = preprocessing(train_test_df[k])
 
-        return processed_data, processed_train_test
+        return self.processed_data, self.processed_train_test
 
     def compute_feat_type(self):
         """ For each variable, compute if it is numerical, categorical, etc.
@@ -465,7 +460,7 @@ class AutoML():
     #    """
     #    display(self.feat_type)
 
-    def show_descriptors(self, train_test=None):
+    def show_descriptors(self, processed_data=False): #, train_test=None):
         """ 
             Show descriptors of the dataset 
             - Dataset ratio
@@ -477,8 +472,14 @@ class AutoML():
             - First two LDA components
             - T-SNE plot
         """
+        
+        if processed_data:
+            train_test = self.get_processed_data()[1] 
+        else:
+            train_test = self.get_train_test_as_df()
 
         # Text
+        printmd('** Descriptors **')
 
         for k in list(self.descriptors.keys()):
             key = k.capitalize().replace('_', ' ')
@@ -489,6 +490,8 @@ class AutoML():
             print('{}: {}'.format(key, value))
 
         # Plots
+        printmd('** Plots **')
+        
         x_sets = ['X_train']
         y_sets = []
         
@@ -502,10 +505,7 @@ class AutoML():
         if 'y_train' in self.train_test:
             y_sets.append('y_test')
 
-        if train_test == None:
-            train_test = self.get_train_test_as_df() # get processed data ?
-
-        if self.info['feat_num'] < 20: # TODO selection, plot with y
+        if int(self.info['feat_num']) < 20: # TODO selection, plot with y
             print('Scatter plot matrix')
             sns.set(style="ticks")
             for x in x_sets:
