@@ -512,11 +512,12 @@ class AutoML():
                 print(x)
                 sns.pairplot(train_test[x]) 
                 plt.show()
-
-        print('Classes distribution')
-        for y in y_sets:
-            print(y)
-            show_classes(train_test[y])
+        
+        if len(y_sets) > 0:
+            print('Classes distribution')
+            for y in y_sets:
+                print(y)
+                show_classes(train_test[y])
 
         print('Correlation matrix')
         for x in x_sets:
