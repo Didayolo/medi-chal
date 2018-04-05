@@ -1,5 +1,6 @@
 # Imports
 from scipy.stats import ttest_ind
+import norm
 
 class Comparator():
     def __init__(self, ds1, ds2):
@@ -17,6 +18,21 @@ class Comparator():
         self.compare_descriptors()
 
         assert(ds1.info['feat_num'] == ds2.info['feat_num'])
+
+    def manhattan_norm(self):
+        return norm.manhattan(self.ds1.data['X'], self.ds2.data['X'])
+
+    def euclidean_norm(self):
+        return norm.euclidean(self.ds1.data['X'], self.ds2.data['X'])
+
+    def maximum_norm(self):
+        return norm.maximum(self.ds1.data['X'], self.ds2.data['X'])
+
+    def minimum_norm(self):
+        return norm.minimum(self.ds1.data['X'], self.ds2.data['X'])
+
+    def dcov(self):
+        return norm.distcorr(self.ds1.data['X'], self.ds2.data['X'])
 
     def t_test(self):
         """
