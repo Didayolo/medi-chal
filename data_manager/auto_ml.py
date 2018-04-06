@@ -535,11 +535,18 @@ class AutoML():
             heatmap(train_test[x], row_method, column_method, row_metric,
                     column_metric, color_gradient)
 
-        print('Principal components analysis')
-        for i in range(len(x_sets)):
-            print(x_sets[i])
-            print(y_sets[i])
-            show_pca(train_test[x_sets[i]], train_test[y_sets[i]])
+        if len(y_sets) > 0:
+            print('Principal components analysis')
+            for i in range(len(x_sets)):
+                print(x_sets[i])
+                print(y_sets[i])
+                show_pca(train_test[x_sets[i]], train_test[y_sets[i]])
+
+            print('T-distributed stochastic neighbor embedding')
+            for i in range(len(x_sets)):
+                print(x_sets[i])
+                print(y_sets[i])
+                show_tsne(train_test[x_sets[i]], train_test[y_sets[i]])
 
         # Linear discriminant analysis
         #if int(self.info['target_num']) > 2: # or label_num ?
@@ -550,8 +557,3 @@ class AutoML():
                 print(y_sets[i])
                 show_lda(train_test[x_sets[i]], train_test[y_sets[i]])
 
-        print('T-distributed stochastic neighbor embedding')
-        for i in range(len(x_sets)):
-            print(x_sets[i])
-            print(y_sets[i])
-            show_tsne(train_test[x_sets[i]], train_test[y_sets[i]])
