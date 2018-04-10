@@ -53,7 +53,7 @@ class Comparator():
         """
         return ttest_ind(self.ds1.data['X'], self.ds2.data['X'])
          
-    def compare_descriptors(self):
+    def compare_descriptors(self): #TODO param ord for the norm
         """ L1-norm distances between descriptors
         """
         descriptors1 = self.ds1.descriptors

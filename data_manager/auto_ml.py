@@ -390,12 +390,13 @@ class AutoML():
             self.info['task'] = 'Unknown'
         return self.info['task']
 
-    def get_processed_data(self):
+    def get_processed_data(self, normalization='mean'):
         """ 
             Preprocess data.
             - Missing values inputation
             - +Inf and -Inf replaced by maximum and minimum
             - One hot encoding for categorical variables
+            - Normalization ('mean', 'minmax', None)
 
             :return: Dictionnary containing the preprocessed data as Pandas DataFrame
             :rtype: Dict
@@ -406,9 +407,9 @@ class AutoML():
             train_test_df = self.get_train_test_as_df()
 
             for k in list(data_df.keys()):
-                self.processed_data[k] = preprocessing(data_df[k])
+                self.processed_data[k] = preprocessing(data_df[k], normalization=normalization)
             for k in list(train_test_df.keys()):
-                self.processed_train_test[k] = preprocessing(train_test_df[k])
+                self.processed_train_test[k] = preprocessing(train_test_df[k], normalization=normalization)
 
         return self.processed_data, self.processed_train_test
 

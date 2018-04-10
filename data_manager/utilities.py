@@ -53,8 +53,11 @@ def is_numeric(variable):
     return numeric
 
 
-def preprocessing(data):
-    """ Return preprocessed DataFrame 
+def preprocessing(data, normalization='mean'):
+    """ Return preprocessed DataFrame
+        Input: 
+          data: DataFrame
+          normalization: 'mean', 'minmax', None
     """
 
     columns = data.columns.values
@@ -81,6 +84,12 @@ def preprocessing(data):
             one_hot = pd.get_dummies(data[column])
             data = data.drop(column, axis=1)
             data = data.join(one_hot, lsuffix='l', rsuffix='r')
+
+    if normalization == 'mean':
+        data = (data - data.mean()) / data.std()
+    
+    elif normalization == 'minmax' or normalization == 'min-max':
+        data = (data - data.min()) / (data.max() - data.min())
 
     return data
 
