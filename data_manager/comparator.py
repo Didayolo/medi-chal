@@ -2,6 +2,7 @@
 from utilities import *
 from scipy.stats import ttest_ind
 from sklearn.metrics import mutual_info_score
+from scipy.stats import entropy
 from IPython.display import display
 import norm
 
@@ -18,6 +19,10 @@ class Comparator():
         
         # Check if ds1 and ds2 have the same features number
         assert (ds1.info['feat_num'] == ds2.info['feat_num']), "Datasets don't have the same features number, {} != {}".format(ds1.info['feat_num'], ds2.info['feat_num'])
+        
+        #Check if ds1 and ds2 are the exactly same dataset. Then no need to perform comparison.
+        if self.ds1.get_data_as_df()['X'].equals(self.ds2.get_data_as_df()['X']):
+            print("Datasets are equal")
         
         # Dictionary of distances between each descriptor of ds1 and ds2
         self.descriptors_dist = dict()
@@ -53,7 +58,7 @@ class Comparator():
         """
         return ttest_ind(self.ds1.data['X'], self.ds2.data['X'])
          
-    def compare_descriptors(self):
+    def compare_descriptors(self): #TODO param ord for the norm
         """ L1-norm distances between descriptors
         """
         descriptors1 = self.ds1.descriptors
@@ -69,18 +74,26 @@ class Comparator():
             Rows: univariate comparison metrics (numerical or categorical)
         """
         
-        data1 = self.ds1.get_processed_data()[0]['X']
-        data2 = self.ds2.get_processed_data()[0]['X']
+        data1 = self.ds1.get_processed_data()['X']
+        data2 = self.ds2.get_processed_data()['X']
         
         columns = data1.columns.values
         for i, column in enumerate(columns):
+            
+            frequency1 = frequency(data1[column])
+            frequency2 = frequency(data2[column])
+            
+            self.comparison_matrix.set_value('Kullback-Leibler divergence', column, entropy(frequency1, qk=frequency2))
+            self.comparison_matrix.set_value('Mutual information', column, mutual_info_score(frequency1, frequency2))
+            #self.comparison_matrix.set_value('Chi-square', column, chi_square(frequency1, frequency2))
+        
             # Numerical
             if self.ds1.is_numerical[i] == 'numerical':
-                self.comparison_matrix.set_value('kolmogorov-smirnov', column, kolmogorov_smirnov(data1[column], data2[column]))
+                self.comparison_matrix.set_value('Kolmogorov-Smirnov', column, kolmogorov_smirnov(data1[column], data2[column]))
             
             # Categorical, other
-            else:
-                self.comparison_matrix.set_value('chi-square', column, chi_square(data1[column], data2[column]))   
+            #else:
+                
           
     def show_descriptors(self):
         """ Show descriptors distances between ds1 and ds2

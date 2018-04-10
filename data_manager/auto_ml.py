@@ -34,12 +34,10 @@ class AutoML():
 
         # Data
         self.data = dict()
-        self.train_test = dict()
         self.init_data()
         
         # Processed data
         self.processed_data = None # None while no processing has been done
-        self.processed_train_test = None
 
         # autoML info
         self.info = dict()
@@ -126,18 +124,18 @@ class AutoML():
         """
         if os.path.exists(
                 os.path.join(self.input_dir, self.basename + '_train.data')):
-            self.train_test['X_train'] = self.load_data(
+            self.data['X_train'] = self.load_data(
                 os.path.join(self.input_dir, self.basename + '_train.data'))
-            self.train_test['X_test'] = self.load_data(
+            self.data['X_test'] = self.load_data(
                 os.path.join(self.input_dir, self.basename + '_test.data'))
-            self.data['X'] = self.train_test['X_train'] + self.train_test['X_test']
+            self.data['X'] = self.data['X_train'] + self.data['X_test']
             if os.path.exists(
                 os.path.join(self.input_dir, self.basename + '_train.solution')):
-                self.train_test['y_train'] = self.load_label(
+                self.data['y_train'] = self.load_label(
                     os.path.join(self.input_dir, self.basename + '_train.solution'))
-                self.train_test['y_test'] = self.load_label(
+                self.data['y_test'] = self.load_label(
                     os.path.join(self.input_dir, self.basename + '_test.solution'))
-                self.data['y'] = self.train_test['y_train'] + self.train_test['y_test']
+                self.data['y'] = self.data['y_train'] + self.data['y_test']
         elif os.path.exists(
                 os.path.join(self.input_dir, self.basename + '.data')):
             self.data['X'] = self.load_data(
@@ -152,7 +150,7 @@ class AutoML():
 
     def train_test_split(self, **kwargs):
         if 'y' in self.data:
-            self.train_test['X_train'], self.train_test['X_test'], self.train_test['y_train'], self.train_test['y_test'] = \
+            self.data['X_train'], self.data['X_test'], self.data['y_train'], self.data['y_test'] = \
                  train_test_split(self.data['X'], self.data['y'], **kwargs)
         else:
         
@@ -167,12 +165,12 @@ class AutoML():
                 shuffle = kwargs.get('shuffle')
                 
             if shuffle:
-                self.train_test['X_train'], self.train_test['X_test'] = np.random.permutation(self.data['X'])[:cut], \
+                self.data['X_train'], self.data['X_test'] = np.random.permutation(self.data['X'])[:cut], \
                                                                         np.random.permutation(self.data['X'][cut:])
             else:
-                self.train_test['X_train'], self.train_test['X_test'] = self.data['X'][:cut], self.data['X'][cut:]
+                self.data['X_train'], self.data['X_test'] = self.data['X'][:cut], self.data['X'][cut:]
                 
-        return self.train_test
+        return self.data
 
 
     def load_data(self, filepath):
@@ -252,14 +250,14 @@ class AutoML():
 
             self.info['format'] = 'dense'
             self.info['is_sparse'] = 0
-            self.info['train_num'], self.info['feat_num'] = self.train_test['X_train'].shape
-            if ('y_train' in self.train_test) and ('y_test' in self.train_test) and ('X_train' in self.train_test):
-                self.info['target_num'] = self.train_test['y_train'].shape[1]
-                self.info['test_num'] = self.train_test['X_test'].shape[0]
-                assert (self.info['train_num'] == self.train_test['y_train'].shape[0])
-                assert (self.info['feat_num'] == self.train_test['X_test'].shape[1])
-                assert (self.info['test_num'] == self.train_test['y_test'].shape[0])
-                assert (self.info['target_num'] == self.train_test['y_test'].shape[1])
+            self.info['train_num'], self.info['feat_num'] = self.data['X_train'].shape
+            if ('y_train' in self.data) and ('y_test' in self.data) and ('X_train' in self.data):
+                self.info['target_num'] = self.data['y_train'].shape[1]
+                self.info['test_num'] = self.data['X_test'].shape[0]
+                assert (self.info['train_num'] == self.data['y_train'].shape[0])
+                assert (self.info['feat_num'] == self.data['X_test'].shape[1])
+                assert (self.info['test_num'] == self.data['y_test'].shape[0])
+                assert (self.info['target_num'] == self.data['y_test'].shape[1])
             self.info['usage'] = 'No info file'
             self.info['name'] = self.basename
             self.info['has_categorical'] = 0
@@ -281,30 +279,25 @@ class AutoML():
             :rtype: Dict
         """
         data = dict()
+        
+        # X/y
         data['X'] = pd.DataFrame(self.data['X'], columns=self.feat_name)
         if 'y' in self.data:
             data['y'] = pd.DataFrame(self.data['y'], columns=self.label_name)
-        return data
 
-    def get_train_test_as_df(self):
-        """ 
-            Get train test data as a dictionary of pandas DataFrame.
-            
-            :return: Dictionary containing the training sets and test sets.
-            :rtype: Dict
-        """
-        train_test = dict()
-        if 'X_train' and 'X_test' in self.train_test:
-            train_test['X_train'] = pd.DataFrame(
-                self.train_test['X_train'], columns=self.feat_name)
-            train_test['X_test'] = pd.DataFrame(
-                self.train_test['X_test'], columns=self.feat_name)
-            if 'y_train' and 'y_test' in self.train_test:
-                train_test['y_train'] = pd.DataFrame(
-                    self.train_test['y_train'], columns=self.label_name)
-                train_test['y_test'] = pd.DataFrame(
-                    self.train_test['y_test'], columns=self.label_name)
-        return train_test
+        # Train/test
+        if 'X_train' and 'X_test' in self.data:
+            data['X_train'] = pd.DataFrame(
+                self.data['X_train'], columns=self.feat_name)
+            data['X_test'] = pd.DataFrame(
+                self.data['X_test'], columns=self.feat_name)
+            if 'y_train' and 'y_test' in self.data:
+                data['y_train'] = pd.DataFrame(
+                    self.data['y_train'], columns=self.label_name)
+                data['y_test'] = pd.DataFrame(
+                    self.data['y_test'], columns=self.label_name)
+                    
+        return data
 
     def save(self, out_path, out_name):
         def write_array(path, X):
@@ -325,20 +318,20 @@ class AutoML():
                 os.path.join(out_path, out_name + '.solution'),
                 self.data['y'])
 
-        if 'X_train' and 'X_test' in self.train_test:
+        if 'X_train' and 'X_test' in self.data:
             write_array(
                 os.path.join(out_path, out_name + '_train.data'),
-                self.train_test['X_train'])
+                self.data['X_train'])
             write_array(
                 os.path.join(out_path, out_name + '_test.data'),
-                self.train_test['X_test'])
-            if 'y_train' and 'y_test' in self.train_test:
+                self.data['X_test'])
+            if 'y_train' and 'y_test' in self.data:
                 write_array(
                     os.path.join(out_path, out_name + '_test.solution'),
-                    self.train_test['y_train'])
+                    self.data['y_train'])
                 write_array(
                     os.path.join(out_path, out_name + '_test.solution'),
-                    self.train_test['y_test'])
+                    self.data['y_test'])
                 write_array(
                     os.path.join(out_path, out_name + '_label.name'),
                     self.label_name)
@@ -358,7 +351,7 @@ class AutoML():
             :return: Type of the problem stored in the info dict attribute as 'task'
             :rtype: str
         """
-        if 'task' not in self.info.keys() and 'y_train' in self.train_test:
+        if 'task' not in self.info.keys() and 'y_train' in self.data:
             solution = pd.read_csv(
                 solution_filepath, sep=' ', header=None).values
             target_num = solution.shape[1]
@@ -392,27 +385,25 @@ class AutoML():
             self.info['task'] = 'Unknown'
         return self.info['task']
 
-    def get_processed_data(self):
+    def get_processed_data(self, normalization='mean'):
         """ 
             Preprocess data.
             - Missing values inputation
             - +Inf and -Inf replaced by maximum and minimum
             - One hot encoding for categorical variables
+            - Normalization ('mean', 'minmax', None)
 
             :return: Dictionnary containing the preprocessed data as Pandas DataFrame
             :rtype: Dict
         """
         if self.processed_data == None:
-            self.processed_data, self.processed_train_test = dict(), dict()
+            self.processed_data = dict()
             data_df = self.get_data_as_df()
-            train_test_df = self.get_train_test_as_df()
 
             for k in list(data_df.keys()):
-                self.processed_data[k] = preprocessing(data_df[k])
-            for k in list(train_test_df.keys()):
-                self.processed_train_test[k] = preprocessing(train_test_df[k])
+                self.processed_data[k] = preprocessing(data_df[k], normalization=normalization)
 
-        return self.processed_data, self.processed_train_test
+        return self.processed_data
 
     def compute_feat_type(self):
         """ For each variable, compute if it is numerical, categorical, etc.
@@ -440,7 +431,7 @@ class AutoML():
         """
         self.descriptors['ratio'] = int(self.info['feat_num']) / int(self.info['train_num'])
             
-        skewness = self.get_train_test_as_df()['X_train'].skew()
+        skewness = self.get_data_as_df()['X_train'].skew()
         self.descriptors['skewness_min'] = skewness.min()
         self.descriptors['skewness_max'] = skewness.max()
         self.descriptors['skewness_mean'] = skewness.mean()
@@ -462,7 +453,7 @@ class AutoML():
     #    """
     #    display(self.feat_type)
 
-    def show_descriptors(self, processed_data=False): #, train_test=None):
+    def show_descriptors(self, processed_data=False):
         """ 
             Show descriptors of the dataset 
             - Dataset ratio
@@ -476,9 +467,9 @@ class AutoML():
         """
         
         if processed_data:
-            train_test = self.get_processed_data()[1] 
+            data = self.get_processed_data()[1] 
         else:
-            train_test = self.get_train_test_as_df()
+            data = self.get_data_as_df()
 
         # Text
         printmd('** Descriptors **')
@@ -497,14 +488,14 @@ class AutoML():
         x_sets = ['X_train']
         y_sets = []
         
-        if 'y_train' in self.train_test:
+        if 'y_train' in self.data:
             y_sets.append('y_train')
         
         # If there is a test set
-        if (len(self.train_test['X_test']) > 0):
+        if (len(self.data['X_test']) > 0):
             x_sets.append('X_test')
             
-        if 'y_train' in self.train_test:
+        if 'y_train' in self.data:
             y_sets.append('y_test')
 
         if int(self.info['feat_num']) < 20: # TODO selection, plot with y
@@ -512,19 +503,19 @@ class AutoML():
             sns.set(style="ticks")
             for x in x_sets:
                 print(x)
-                sns.pairplot(train_test[x]) 
+                sns.pairplot(data[x]) 
                 plt.show()
         
         if len(y_sets) > 0:
             print('Classes distribution')
             for y in y_sets:
                 print(y)
-                show_classes(train_test[y])
+                show_classes(data[y])
 
         print('Correlation matrix')
         for x in x_sets:
             print(x)
-            show_correlation(train_test[x])
+            show_correlation(data[x])
 
         print('Hierarchical clustering heatmap')
         row_method = 'average'
@@ -534,7 +525,7 @@ class AutoML():
         color_gradient = 'coolwarm'  #'red_white_blue
         for x in x_sets:
             print(x)
-            heatmap(train_test[x], row_method, column_method, row_metric,
+            heatmap(data[x], row_method, column_method, row_metric,
                     column_metric, color_gradient)
 
         if len(y_sets) > 0:
@@ -542,13 +533,13 @@ class AutoML():
             for i in range(len(x_sets)):
                 print(x_sets[i])
                 print(y_sets[i])
-                show_pca(train_test[x_sets[i]], train_test[y_sets[i]])
+                show_pca(data[x_sets[i]], data[y_sets[i]])
 
             print('T-distributed stochastic neighbor embedding')
             for i in range(len(x_sets)):
                 print(x_sets[i])
                 print(y_sets[i])
-                show_tsne(train_test[x_sets[i]], train_test[y_sets[i]])
+                show_tsne(data[x_sets[i]], data[y_sets[i]])
 
         # Linear discriminant analysis
         #if int(self.info['target_num']) > 2: # or label_num ?
@@ -557,5 +548,5 @@ class AutoML():
             for i in range(len(x_sets)):
                 print(x_sets[i])
                 print(y_sets[i])
-                show_lda(train_test[x_sets[i]], train_test[y_sets[i]])
+                show_lda(data[x_sets[i]], data[y_sets[i]])
 
