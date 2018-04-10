@@ -38,6 +38,7 @@ def printmd(string):
     """
     display(Markdown(string))
 
+
 def is_numeric(variable):
     """ Test if a variable (DataFrame column) is numeric or categorical 
     """
@@ -387,6 +388,7 @@ def heatmap(X, row_method, column_method, row_metric, column_metric,
 
     plt.show()
 
+
 def compute_pca(X, verbose=False, **kwargs):
     """ 
         Compute PCA.
@@ -412,6 +414,7 @@ def compute_pca(X, verbose=False, **kwargs):
         plt.show()
         
     return pca, X
+
 
 def show_pca(X, y, i=1, j=2, verbose=False, **kwargs):
     """ 
@@ -442,6 +445,7 @@ def show_pca(X, y, i=1, j=2, verbose=False, **kwargs):
     plt.title('Principal Component Analysis: PC{} and PC{}'.format(str(i), str(j)))
     plt.show()
 
+
 def compute_lda(X, verbose=False, **kwargs):
     """ 
         Compute LDA.
@@ -456,6 +460,7 @@ def compute_lda(X, verbose=False, **kwargs):
     X = lda.fit_transform(X)
 
     return lda, X
+
 
 def show_lda(X, y, verbose=False, **kwargs):
     """ 
@@ -496,6 +501,7 @@ def compute_tsne(X, verbose=False, **kwargs):
 
     return tsne, X 
 
+
 def show_tsne(X, y, i=1, j=2, verbose=False, **kwargs):
     """ 
         Plot T-SNE.
@@ -521,6 +527,7 @@ def show_tsne(X, y, i=1, j=2, verbose=False, **kwargs):
     plt.legend(loc='best', shadow=False, scatterpoints=1)
     plt.title('T-SNE: TC{} and TC{}'.format(str(i), str(j)))
     plt.show()
+  
     
 def frequency(data):
     """ Pandas series to frequency distribution
@@ -528,10 +535,12 @@ def frequency(data):
     # TODO error if several columns have the same header
     return data.value_counts()
     
+    
 def chi_square(col1, col2):
     """ Performs Chi2 on two DataFrame columns
     """
     return chi2_contingency(np.array([col1, col2]))
+        
         
 def kolmogorov_smirnov(col1, col2):
     """ Performs Kolmogorov-Smirnov test on two DataFrame columns
