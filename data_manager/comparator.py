@@ -38,17 +38,17 @@ class Comparator():
     def get_ds2(self):
         return ds2
 
-    def manhattan_norm(self):
-        return norm.manhattan(self.ds1.data['X'], self.ds2.data['X'])
+    def manhattan_norm(self, axis=None):
+        return norm.manhattan(self.ds1.data['X'], self.ds2.data['X'], axis=axis)
 
-    def euclidean_norm(self):
-        return norm.euclidean(self.ds1.data['X'], self.ds2.data['X'])
+    def euclidean_norm(self, axis=None):
+        return norm.euclidean(self.ds1.data['X'], self.ds2.data['X'], axis=axis)
 
-    def maximum_norm(self):
-        return norm.maximum(self.ds1.data['X'], self.ds2.data['X'])
+    def maximum_norm(self, axis=None):
+        return norm.maximum(self.ds1.data['X'], self.ds2.data['X'], axis=axis)
 
-    def minimum_norm(self):
-        return norm.minimum(self.ds1.data['X'], self.ds2.data['X'])
+    def minimum_norm(self, axis=None):
+        return norm.minimum(self.ds1.data['X'], self.ds2.data['X'], axis=axis)
 
     def dcov(self):
         return norm.distcorr(self.ds1.data['X'], self.ds2.data['X'])

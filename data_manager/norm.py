@@ -2,25 +2,38 @@ import numpy as np
 from scipy.spatial.distance import pdist, squareform
 
 
-def euclidean(x, y):
-    return np.linalg.norm(x - y, ord=2)
+def euclidean(x, y, axis=None):
+    """
+        Compute the euclidean distance.
+    """
+    return np.linalg.norm(x - y, ord=2, axis=axis)
 
 
-def maximum(x, y):
-    return np.linalg.norm(x - y, ord='inf')
+def maximum(x, y, axis=None):
+    """
+        Compute the maximum distance.
+    """
+    return np.linalg.norm(x - y, ord='inf', axis=axis)
 
 
-def minimum(x, y):
-    return np.linalg.norm(x - y, ord='-inf')
+def minimum(x, y, axis=None):
+    """
+        Compute the minimum distance.
+    """
+    return np.linalg.norm(x - y, ord='-inf', axis=axis)
 
 
-def manhattan(x, y):
-    return np.linalg.norm(x - y, ord=1)
+def manhattan(x, y, axis=None):
+    """
+        Compute the manhattan distance.
+    """
+    return np.linalg.norm(x - y, ord=1, axis=axis)
 
 
 def distcorr(X, Y):
     """
-    Compute the distance correlation function
+        Compute the distance correlation function.
+        Works with X and Y of different dimensions (but same number of samples mandatory).
     """
     X = np.atleast_1d(X)
     Y = np.atleast_1d(Y)
