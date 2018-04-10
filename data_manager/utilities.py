@@ -88,7 +88,7 @@ def preprocessing(data, normalization='mean'):
     if normalization == 'mean':
         data = (data - data.mean()) / data.std()
     
-    elif normalization == 'minmax' or normalization == 'min-max':
+    elif normalization in ['minmax', 'min-max']:
         data = (data - data.min()) / (data.max() - data.min())
 
     return data

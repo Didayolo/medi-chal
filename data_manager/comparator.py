@@ -4,7 +4,7 @@ from scipy.stats import ttest_ind
 from sklearn.metrics import mutual_info_score
 from scipy.stats import entropy
 from IPython.display import display
-import norm
+from norm import *
 
 class Comparator():
     def __init__(self, ds1, ds2):
@@ -38,35 +38,35 @@ class Comparator():
     def get_ds2(self):
         return ds2
 
-    def manhattan_norm(self, axis=None):
-        return norm.manhattan(self.ds1.data['X'], self.ds2.data['X'], axis=axis)
-
-    def euclidean_norm(self, axis=None):
-        return norm.euclidean(self.ds1.data['X'], self.ds2.data['X'], axis=axis)
-
-    def maximum_norm(self, axis=None):
-        return norm.maximum(self.ds1.data['X'], self.ds2.data['X'], axis=axis)
-
-    def minimum_norm(self, axis=None):
-        return norm.minimum(self.ds1.data['X'], self.ds2.data['X'], axis=axis)
+    def datasets_distance(self, axis=None, norm='manhattan'):
+        """ Compute distance between ds1 and ds2
+            Input:
+              norm: 'l0', 'manhattan', 'euclidean', 'minimum', 'maximum'
+        """
+        return distance(self.ds1.data['X'], self.ds2.data['X'], axis=axis, norm=norm)
 
     def dcov(self):
-        return norm.distcorr(self.ds1.data['X'], self.ds2.data['X'])
+        """ Compute the distance correlation between ds1 and ds2.
+        """
+        return distcorr(self.ds1.data['X'], self.ds2.data['X'])
 
     def t_test(self):
         """ Perform Student's t-test.
         """
         return ttest_ind(self.ds1.data['X'], self.ds2.data['X'])
          
-    def compare_descriptors(self): #TODO param ord for the norm
-        """ L1-norm distances between descriptors
+    def compare_descriptors(self, norm='manhattan'):
+        """ Compute distances between descriptors of ds1 and ds2.
+            Input:
+              norm: 'l0', 'manhattan', 'euclidean', 'minimum', 'maximum'
         """
         descriptors1 = self.ds1.descriptors
         descriptors2 = self.ds2.descriptors
+        
         # For each descriptor
         for k in list(descriptors1.keys()):
             # Distance
-            self.descriptors_dist[k] = abs(descriptors1[k] - descriptors2[k])
+            self.descriptors_dist[k] = distance(descriptors1[k], descriptors2[k], norm=norm)
             
     def compute_comparison_matrix(self):
         """ Compute a pandas DataFrame
@@ -83,13 +83,13 @@ class Comparator():
             frequency1 = frequency(data1[column])
             frequency2 = frequency(data2[column])
             
-            self.comparison_matrix.set_value('Kullback-Leibler divergence', column, entropy(frequency1, qk=frequency2))
-            self.comparison_matrix.set_value('Mutual information', column, mutual_info_score(frequency1, frequency2))
-            #self.comparison_matrix.set_value('Chi-square', column, chi_square(frequency1, frequency2))
+            self.comparison_matrix.at[column, 'Kullback-Leibler divergence'] = entropy(frequency1, qk=frequency2)
+            self.comparison_matrix.at[column, 'Mutual information'] = mutual_info_score(frequency1, frequency2)
+            #self.comparison_matrix.at[column, 'Chi-square'] = chi_square(frequency1, frequency2)
         
             # Numerical
             if self.ds1.is_numerical[i] == 'numerical':
-                self.comparison_matrix.set_value('Kolmogorov-Smirnov', column, kolmogorov_smirnov(data1[column], data2[column]))
+                self.comparison_matrix.at[column, 'Kolmogorov-Smirnov'] = kolmogorov_smirnov(data1[column], data2[column])
             
             # Categorical, other
             #else:

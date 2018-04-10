@@ -1,34 +1,34 @@
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 
-
-def euclidean(x, y, axis=None):
+def distance(x, y, axis=None, norm='manhattan'):
     """
-        Compute the euclidean distance.
+        Compute the distance between x and y.
+        Input:
+              x, y, axis
+              norm: 'l0', 'manhattan', 'euclidean', 'minimum', 'maximum'
     """
-    return np.linalg.norm(x - y, ord=2, axis=axis)
-
-
-def maximum(x, y, axis=None):
-    """
-        Compute the maximum distance.
-    """
-    return np.linalg.norm(x - y, ord='inf', axis=axis)
-
-
-def minimum(x, y, axis=None):
-    """
-        Compute the minimum distance.
-    """
-    return np.linalg.norm(x - y, ord='-inf', axis=axis)
-
-
-def manhattan(x, y, axis=None):
-    """
-        Compute the manhattan distance.
-    """
-    return np.linalg.norm(x - y, ord=1, axis=axis)
-
+    z = x - y
+    
+    # if x and y are single values
+    if not isinstance(x, (list, np.ndarray)):
+        z = [x - y]
+    
+    if norm == 'manhattan':
+        return np.linalg.norm(z, ord=1, axis=axis)
+    
+    elif norm == 'euclidean':
+        return np.linalg.norm(z, ord=2, axis=axis)
+        
+    elif norm == 'minimum':
+        return np.linalg.norm(z, ord='-inf', axis=axis)
+        
+    elif norm == 'maximum':
+        return np.linalg.norm(z, ord='inf', axis=axis)
+        
+    # L0 norm   
+    return np.linalg.norm(z, ord=0, axis=axis)
+    
 
 def distcorr(X, Y):
     """
