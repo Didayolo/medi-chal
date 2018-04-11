@@ -33,6 +33,10 @@ from scipy.stats import ks_2samp
 # Chi-square
 from scipy.stats import chi2_contingency
 
+# KL divergence, mutual information
+from sklearn.metrics import mutual_info_score
+from scipy.stats import entropy
+
 def printmd(string):
     """ Print Markdown string
     """
@@ -541,3 +545,15 @@ def kolmogorov_smirnov(col1, col2):
     """ Performs Kolmogorov-Smirnov test on two DataFrame columns
     """
     return ks_2samp(col1, col2)
+    
+def kullback_leibler(freq1, freq2):
+    """ Performs KL divergence on probability distributions
+        Return a couple because this is not symetric
+    """    
+    return entropy(freq1, qk=freq2), entropy(freq2, qk=freq1)
+    
+def mutual_information(freq1, freq2):
+    """ Performs the Kullback-Leibler divergence of the joint distribution with the product distribution of the marginals.
+        freq1 and freq2 are probability distributions.
+    """
+    return mutual_info_score(freq1, freq2)

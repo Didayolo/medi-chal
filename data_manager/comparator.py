@@ -1,8 +1,6 @@
 # Imports
 from utilities import *
 from scipy.stats import ttest_ind
-from sklearn.metrics import mutual_info_score
-from scipy.stats import entropy
 from IPython.display import display
 from norm import *
 
@@ -83,13 +81,13 @@ class Comparator():
             frequency1 = frequency(data1[column])
             frequency2 = frequency(data2[column])
             
-            self.comparison_matrix.at[column, 'Kullback-Leibler divergence'] = entropy(frequency1, qk=frequency2)
-            self.comparison_matrix.at[column, 'Mutual information'] = mutual_info_score(frequency1, frequency2)
-            #self.comparison_matrix.at[column, 'Chi-square'] = chi_square(frequency1, frequency2)
+            self.comparison_matrix.at['Kullback-Leibler divergence', column] = kullback_leibler(frequency1, frequency2)
+            self.comparison_matrix.at['Mutual information', column] = mutual_information(frequency1, frequency2)
+            #self.comparison_matrix.at['Chi-square', column] = chi_square(frequency1, frequency2)
         
             # Numerical
             if self.ds1.is_numerical[i] == 'numerical':
-                self.comparison_matrix.at[column, 'Kolmogorov-Smirnov'] = kolmogorov_smirnov(data1[column], data2[column])
+                self.comparison_matrix.at['Kolmogorov-Smirnov', column] = kolmogorov_smirnov(data1[column], data2[column])
             
             # Categorical, other
             #else:
