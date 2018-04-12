@@ -551,16 +551,17 @@ def chi_square(col1, col2):
 def kolmogorov_smirnov(col1, col2):
     """ Performs Kolmogorov-Smirnov test on two DataFrame columns
     """
-    return ks_2samp(col1, col2)
+    res = ks_2samp(col1, col2)
+    return res[0].round(5), res[1].round(5)
     
 def kullback_leibler(freq1, freq2):
     """ Performs KL divergence on probability distributions
         Return a couple because this is not symetric
     """    
-    return entropy(freq1, qk=freq2), entropy(freq2, qk=freq1)
+    return entropy(freq1, qk=freq2).round(5), entropy(freq2, qk=freq1).round(5)
     
 def mutual_information(freq1, freq2):
     """ Performs the Kullback-Leibler divergence of the joint distribution with the product distribution of the marginals.
         freq1 and freq2 are probability distributions.
     """
-    return mutual_info_score(freq1, freq2)
+    return mutual_info_score(freq1, freq2).round(5)

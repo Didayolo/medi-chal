@@ -2,7 +2,7 @@ import numpy as np
 from scipy.spatial.distance import pdist, squareform
 
 
-def distance(x, y, axis=None, distance='manhattan'):
+def distance(x, y, axis=None, norm='manhattan'):
     """
         Compute the distance between x and y.
         Input:
@@ -15,15 +15,15 @@ def distance(x, y, axis=None, distance='manhattan'):
     if not isinstance(x, (list, np.ndarray)):
         z = [x - y]
 
-    if distance == 'manhattan' or distance == 'l1':
+    if norm == 'manhattan' or distance == 'l1':
         return np.linalg.norm(z, ord=1, axis=axis)
-    elif distance == 'euclidean' or distance == 'l2':
+    elif norm == 'euclidean' or distance == 'l2':
         return np.linalg.norm(z, ord=2, axis=axis)
-    elif distance == 'minimum':
+    elif norm == 'minimum':
         return np.linalg.norm(z, ord='-inf', axis=axis)
-    elif distance == 'maximum':
+    elif norm == 'maximum':
         return np.linalg.norm(z, ord='inf', axis=axis)
-    elif distance == 'l0':
+    elif norm == 'l0':
         return np.linalg.norm(z, ord=0, axis=axis)
     else:
         raise ValueError('Argument norm is invalid.')

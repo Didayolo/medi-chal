@@ -30,7 +30,7 @@ class Comparator():
         
         # Features/metrics matrix
         self.comparison_matrix = pd.DataFrame(columns=ds1.get_data_as_df()['X'].columns.values)
-        #self.compute_comparison_matrix()
+        self.compute_comparison_matrix()
 
     def get_ds1(self):
         return ds1
@@ -119,9 +119,6 @@ class Comparator():
         y_test = [0] * len(X1_test) + [1] * len(X2_test)
         
         # Training
-        for e in X_train:
-            if len(e) != 100:
-                print(e)
         clf.fit(X_train, y_train)
         
         # Score
@@ -149,5 +146,4 @@ class Comparator():
     def show_comparison_matrix(self):
         """ Display inter-columns comparison
         """
-        matrix = self.comparison_matrix
-        display(matrix.round(decimals=5))
+        display(self.comparison_matrix)
