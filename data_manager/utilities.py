@@ -95,7 +95,7 @@ def preprocessing(data, encoding='label', normalization='mean'):
     
             if encoding=='label':
                 # Label encoding: [1, 2, 3]
-                data.column = data.column.astype('category').cat.codes
+                data[column] = data[column].astype('category').cat.codes
     
             else:
                 # One-hot encoding: [0, 0, 1]
@@ -535,12 +535,58 @@ def show_tsne(X, y, i=1, j=2, verbose=False, **kwargs):
     plt.show()
   
     
-def frequency(data):
-    """ Pandas series to frequency distribution
-    """
-    # TODO error if several columns have the same header
-    return data.value_counts() # normalize=True
+def to_frequency(columns, probability=False):
+    """ Pandas series to frequency/probability distribution.
+        If there are several series, the outputs will have the same format.
+        Example:
+          C1: ['b', 'a', 'a', 'b', 'b']
+          C2: ['b', 'b', 'b', 'c', 'b']
+          
+          f1: ['a': 2, 'b'; 3, 'c': 0]
+          f2: ['a': 0, 'b'; 4, 'c': 1]
+          
+          Output: [[2, 3, 0], [0, 4, 1]] (with probability = False)
+          
+        Input:
+          probability: True for probablities, False for frequencies
+    """ # TODO error if several columns have the same header
+
+    # If there is only one column, just return frequencies
+    if not isinstance(columns[0], (list, np.ndarray, pd.Series)):
+        return columns.value_counts(normalize=probability).values
     
+    frequencies = []
+    
+    # Compute frequencies for each column
+    for column in columns:
+        f = dict()
+        for e in column:
+            if e in f:
+                f[e] += 1
+            else:
+                f[e] = 1
+        frequencies.append(f)
+        
+    # Add keys from other columns in every dictionaries with a frequency of 0
+    # We want the same format
+    for i, f in enumerate(frequencies):
+        for k in f.keys():
+            for other_f in frequencies[:i]+frequencies[i+1:]:
+                if k not in other_f:
+                    other_f[k] = 0
+           
+    # Convert to frequency/probability distribution
+    res = []         
+    for f in frequencies:
+        l = list(f.values())
+        if probability:
+            # normalize
+            l = [float(i)/sum(l) for i in l]
+        # Convert dict into a list of values
+        res.append(l)
+        # Every list will follow the same order because the dicts contain the same keys
+                    
+    return res
     
 def chi_square(col1, col2):
     """ Performs Chi2 on two DataFrame columns

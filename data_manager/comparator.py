@@ -33,10 +33,10 @@ class Comparator():
         self.compute_comparison_matrix()
 
     def get_ds1(self):
-        return ds1
+        return self.ds1
         
     def get_ds2(self):
-        return ds2
+        return self.ds2
 
     def datasets_distance(self, axis=None, norm='manhattan'):
         """ Compute distance between ds1 and ds2
@@ -81,20 +81,19 @@ class Comparator():
         
         columns = data1.columns.values
         for i, column in enumerate(columns):
-            
-            frequency1 = frequency(data1[column])
-            frequency2 = frequency(data2[column])
-            
-            self.comparison_matrix.at['Kullback-Leibler divergence', column] = kullback_leibler(frequency1, frequency2)
-            self.comparison_matrix.at['Mutual information', column] = mutual_information(frequency1, frequency2)
-            #self.comparison_matrix.at['Chi-square', column] = chi_square(frequency1, frequency2)
         
             # Numerical
             if self.ds1.is_numerical[i] == 'numerical':
                 self.comparison_matrix.at['Kolmogorov-Smirnov', column] = kolmogorov_smirnov(data1[column], data2[column])
             
             # Categorical, other
-            #else:
+            else:
+                f1 = to_frequency(data1[column])
+                f2 = to_frequency(data2[column])
+                
+                self.comparison_matrix.at['Kullback-Leibler divergence', column] = kullback_leibler(f1, f2)
+                self.comparison_matrix.at['Mutual information', column] = mutual_information(f1, f2)
+                #self.comparison_matrix.at['Chi-square', column] = chi_square(f1, f2)
                 
     def classify(self, clf=LogisticRegression()):
         """ Return the score (mean accuracy) of a classifier train on the data labeled with 0 or 1 according to their original dataset.
@@ -127,9 +126,10 @@ class Comparator():
     def show_classifier_score(self, clf=LogisticRegression()):
         """ Display classify method result
         """
+        score = self.classify(clf=clf).round(5)
         print(clf)
         print('\n')
-        print('Score: ' + str(self.classify(clf=clf)))
+        printmd('** Score: **' + str(score))
         print('\n')
           
     def show_descriptors(self):
