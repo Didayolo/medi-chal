@@ -437,11 +437,12 @@ def show_pca(X, y, i=1, j=2, verbose=False, **kwargs):
 
     assert(i <= pca.n_components_ and j <= pca.n_components_ and i != j)
 
+    target_names = list(y.columns)
+
     if y.ndim > 1:
         y = np.where(y==1)[1]
 
     target_num = len(np.unique(y))
-    target_names = range(target_num)
     
     for label in range(target_num):
         plt.scatter(X[y == label, i-1], X[y == label, j-1], alpha=.8, lw=2, label=target_names[label])
@@ -478,11 +479,13 @@ def show_lda(X, y, verbose=False, **kwargs):
         :param **kwargs: Additional parameters for PCA (see sklearn doc)
     """
     _, X = compute_lda(X, verbose=verbose, **kwargs)
+    
+    target_names = list(y.columns)
+    
     if y.shape[1] > 1:
         y = np.where(y==1)[1]
 
     target_num = len(np.unique(y))
-    target_names = range(target_num)
 
     for label in range(target_num):
         plt.scatter(X[y == label, 0], X[y == label, 1], alpha=.8, lw=2, label=target_names[label])
@@ -522,11 +525,12 @@ def show_tsne(X, y, i=1, j=2, verbose=False, **kwargs):
     tsne, X = compute_tsne(X, verbose=verbose, **kwargs)
     assert(i <= tsne.embedding_.shape[1] and j <= tsne.embedding_.shape[1] and i != j)
 
+    target_names = list(y.columns)
+
     if y.shape[1] > 1:
         y = np.where(y==1)[1]
 
     target_num = len(np.unique(y))
-    target_names = range(target_num)
 
     for label in range(target_num):
         plt.scatter(X[y == label, i-1], X[y == label, j-1], alpha=.8, lw=2, label=target_names[label])

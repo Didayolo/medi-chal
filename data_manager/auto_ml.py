@@ -425,16 +425,29 @@ class AutoML():
         """ 
             Compute descriptors of the dataset and store them in self.descriptors dictionary.
             - ratio: Dataset ratio
+            - symb_ratio: Ratio of symbolic attributes
+            - class_deviation: Standard deviation of class distribution
+            - missing_proba: Probability of missing values
             - skewness_min: Minimum skewness over features 
             - skewness_max: Maximum skewness over features
             - skewness_mean: Average skewness over features
-        """
+        """ # - defective_proba: Probability of defective records (columns with missing values)
+        data_as_df = self.get_data_as_df()
+        
         self.descriptors['ratio'] = int(self.info['feat_num']) / int(self.info['train_num'])
             
-        skewness = self.get_data_as_df()['X_train'].skew()
+        self.descriptors['symb_ratio'] = self.is_numerical.count('numeric') / len(self.is_numerical)
+        
+        if 'y' in self.data:
+             self.descriptors['class_deviation'] = data_as_df['y'].std().mean()
+        
+        self.descriptors['missing_proba'] = (data_as_df['X'].isnull().sum() / len(data_as_df['X'])).mean()
+            
+        skewness = data_as_df['X'].skew()
         self.descriptors['skewness_min'] = skewness.min()
         self.descriptors['skewness_max'] = skewness.max()
         self.descriptors['skewness_mean'] = skewness.mean()
+        
 
     def show_info(self):
         """ 
