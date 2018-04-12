@@ -58,10 +58,11 @@ def is_numeric(variable):
     return numeric
 
 
-def preprocessing(data, normalization='mean'):
+def preprocessing(data, encoding='label', normalization='mean'):
     """ Return preprocessed DataFrame
         Input: 
           data: DataFrame
+          encoding: 'label', 'one-hot'
           normalization: 'mean', 'minmax', None
     """
 
@@ -78,23 +79,29 @@ def preprocessing(data, normalization='mean'):
             # Replace +Inf by the maximum and -Inf by the minimum
             data[column] = data[column].replace(np.inf, max(data[column]))
             data[column] = data[column].replace(-np.inf, min(data[column]))
+            
+            # Mean normalization
+            if normalization == 'mean':
+                data[column] = (data[column] - data[column].mean()) / data[column].std()
+    
+            # Min-max normalization
+            elif normalization in ['minmax', 'min-max']:
+                data[column] = (data[column] - data[column].min()) / (data[column].max() - data[column].min())
 
         # For categorigal variables
         else:
             # Replace NaN with 'missing'
-            # TODO : For one-hot encoding : [0, 0, ..., 0]
             data[column] = data[column].fillna('missing')
-
-            # One-hot encoding
-            one_hot = pd.get_dummies(data[column])
-            data = data.drop(column, axis=1)
-            data = data.join(one_hot, lsuffix='l', rsuffix='r')
-
-    if normalization == 'mean':
-        data = (data - data.mean()) / data.std()
     
-    elif normalization in ['minmax', 'min-max']:
-        data = (data - data.min()) / (data.max() - data.min())
+            if encoding=='label':
+                # Label encoding: [1, 2, 3]
+                data.column = data.column.astype('category').cat.codes
+    
+            else:
+                # One-hot encoding: [0, 0, 1]
+                one_hot = pd.get_dummies(data[column])
+                data = data.drop(column, axis=1)
+                data = data.join(one_hot, lsuffix='l', rsuffix='r')
 
     return data
 
@@ -532,7 +539,7 @@ def frequency(data):
     """ Pandas series to frequency distribution
     """
     # TODO error if several columns have the same header
-    return data.value_counts()
+    return data.value_counts() # normalize=True
     
     
 def chi_square(col1, col2):

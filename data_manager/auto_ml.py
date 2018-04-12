@@ -467,7 +467,7 @@ class AutoML():
         """
         
         if processed_data:
-            data = self.get_processed_data()[1] 
+            data = self.get_processed_data()
         else:
             data = self.get_data_as_df()
 

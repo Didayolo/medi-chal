@@ -3,6 +3,8 @@ from utilities import *
 from scipy.stats import ttest_ind
 from IPython.display import display
 from norm import *
+from sklearn.linear_model import LogisticRegression
+import random
 
 class Comparator():
     def __init__(self, ds1, ds2):
@@ -92,6 +94,44 @@ class Comparator():
             # Categorical, other
             #else:
                 
+    def classify(self, clf=LogisticRegression()):
+        """ Return the score (mean accuracy) of a classifier train on the data labeled with 0 or 1 according to their original dataset.
+        """
+        
+        ds1 = self.ds1.get_processed_data()
+        ds2 = self.ds2.get_processed_data()
+    
+        # Train set
+        X1_train, X2_train = list(ds1['X_train'].values), list(ds2['X_train'].values)
+        X_train = X1_train + X2_train
+        y_train = [0] * len(X1_train) + [1] * len(X2_train)
+        
+        # Shuffle
+        combined = list(zip(X_train, y_train))
+        random.shuffle(combined)
+        X_train[:], y_train[:] = zip(*combined)
+        
+        # Test set
+        X1_test, X2_test = list(ds1['X_test'].values), list(ds2['X_test'].values)
+        X_test = X1_test + X2_test
+        y_test = [0] * len(X1_test) + [1] * len(X2_test)
+        
+        # Training
+        for e in X_train:
+            if len(e) != 100:
+                print(e)
+        clf.fit(X_train, y_train)
+        
+        # Score
+        return clf.score(X_test, y_test)
+        
+    def show_classifier_score(self, clf=LogisticRegression()):
+        """ Display classify method result
+        """
+        print(clf)
+        print('\n')
+        print('Score: ' + str(self.classify(clf=clf)))
+        print('\n')
           
     def show_descriptors(self):
         """ Show descriptors distances between ds1 and ds2
