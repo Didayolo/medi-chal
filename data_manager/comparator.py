@@ -30,7 +30,7 @@ class Comparator():
         
         # Features/metrics matrix
         self.comparison_matrix = pd.DataFrame(columns=ds1.get_data_as_df()['X'].columns.values)
-        self.compute_comparison_matrix()
+        #self.compute_comparison_matrix()
 
     def get_ds1(self):
         return ds1
@@ -43,7 +43,9 @@ class Comparator():
             Input:
               norm: 'l0', 'manhattan', 'euclidean', 'minimum', 'maximum'
         """
-        return distance(self.ds1.data['X'], self.ds2.data['X'], axis=axis, norm=norm)
+        data1 = self.ds1.get_processed_data()['X'].values
+        data2 = self.ds2.get_processed_data()['X'].values
+        return distance(data1, data2, axis=axis, norm=norm)
 
     def dcov(self):
         """ Compute the distance correlation between ds1 and ds2.
@@ -143,11 +145,9 @@ class Comparator():
                 value = value.capitalize().replace('_', ' ').replace('.', ' ')
 
             print('{}: {}'.format(key, value))
-            
+
     def show_comparison_matrix(self):
         """ Display inter-columns comparison
         """
-        display(self.comparison_matrix)
-            
-
-            
+        matrix = self.comparison_matrix
+        display(matrix.round(decimals=5))
