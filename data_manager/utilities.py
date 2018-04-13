@@ -33,9 +33,10 @@ from scipy.stats import ks_2samp
 # Chi-square
 from scipy.stats import chi2_contingency
 
-# KL divergence, mutual information
+# KL divergence, mutual information, Jensen-Shannon
 from sklearn.metrics import mutual_info_score
 from scipy.stats import entropy
+from numpy.linalg import norm
 
 def printmd(string):
     """ Print Markdown string
@@ -615,3 +616,12 @@ def mutual_information(freq1, freq2):
         freq1 and freq2 are probability distributions.
     """
     return mutual_info_score(freq1, freq2).round(5)
+    
+def jensen_shannon(P, Q):
+    """ Performs the Jensen-Shannon divergence on probability distributions.
+        This metric is symetric.
+    """
+    _P = P / norm(P, ord=1)
+    _Q = Q / norm(Q, ord=1)
+    _M = 0.5 * (_P + _Q)
+    return 0.5 * (entropy(_P, _M) + entropy(_Q, _M))

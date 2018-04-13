@@ -93,10 +93,13 @@ class Comparator():
                 
                 self.comparison_matrix.at['Kullback-Leibler divergence', column] = kullback_leibler(f1, f2)
                 self.comparison_matrix.at['Mutual information', column] = mutual_information(f1, f2)
+                self.comparison_matrix.at['Jensen-Shannon divergence', column] = jensen_shannon(f1, f2)
                 #self.comparison_matrix.at['Chi-square', column] = chi_square(f1, f2)
                 
     def classify(self, clf=LogisticRegression()):
         """ Return the score (mean accuracy) of a classifier train on the data labeled with 0 or 1 according to their original dataset.
+            Input:
+              clf: the classifier. It has to have fit(X,y) and score(X,y) methods.
         """
         
         ds1 = self.ds1.get_processed_data()
@@ -124,7 +127,10 @@ class Comparator():
         return clf.score(X_test, y_test)
         
     def show_classifier_score(self, clf=LogisticRegression()):
-        """ Display classify method result
+        """ Display the score (mean accuracy) of a classifier train on the data labeled with 0 or 1 according to their original dataset.
+            (return of 'classify' method)
+            Input:
+              clf: the classifier. It has to have fit(X,y) and score(X,y) methods.
         """
         score = self.classify(clf=clf).round(5)
         print(clf)
