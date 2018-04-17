@@ -6,6 +6,7 @@ import seaborn as sns
 import numpy as np
 import pandas as pd
 from IPython.display import display, Markdown
+from norm import *
 
 # Hierarchical clustering
 import matplotlib as mpl
@@ -17,26 +18,28 @@ import time
 import sys, os
 import getopt
 
-# Principal component analysis
+# PCA, LDA, T-SNE
 from sklearn.decomposition import PCA
 from itertools import combinations
-
-# Discriminant analysis
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-
-# T-SNE
 from sklearn.manifold import TSNE
 
-# Kolmogorov-Smirnov
+# Kolmogorov-Smirnov, Chi-square
 from scipy.stats import ks_2samp
-
-# Chi-square
 from scipy.stats import chi2_contingency
 
 # KL divergence, mutual information, Jensen-Shannon
 from sklearn.metrics import mutual_info_score
 from scipy.stats import entropy
 from numpy.linalg import norm
+
+# Area under curve
+from scipy.integrate import simps
+from numpy import trapz
+
+# MMD
+import torch as th
+from torch.autograd import Variable
 
 def printmd(string):
     """ Print Markdown string
@@ -106,6 +109,18 @@ def preprocessing(data, encoding='label', normalization='mean'):
 
     return data
 
+def normalize(l, normalization='probability'):
+    """ Return a normalized list
+        Input:
+          normalization: 'probability': between 0 and 1 with a sum equals to 1
+                         'min-max': min become 0 and max become 1
+    """
+    if normalization=='probability':
+        return [float(i)/sum(l) for i in l]
+    elif normalization=='min-max':
+        return [(float(i) - min(l)) / (max(l) - min(l)) for i in l]
+    else: # mean std ?
+        raise ValueError('Argument normalization is invalid.')
 
 def show_classes(y):
     """ Shows classes distribution
@@ -585,13 +600,114 @@ def to_frequency(columns, probability=False):
     for f in frequencies:
         l = list(f.values())
         if probability:
-            # normalize
-            l = [float(i)/sum(l) for i in l]
+            # normalize between 0 and 1 with a sum of 1
+            l = normalize(l)
         # Convert dict into a list of values
         res.append(l)
         # Every list will follow the same order because the dicts contain the same keys
                     
     return res
+    
+def minimum_distance(A, B, norm='manhattan'):
+    """ Compute for each element of A its distance from its nearest neighbor from B (and reciprocally)
+        Inputs:
+          A: Distribution A
+          B: Distribution B
+          norm: Norm used for distance computations
+        Return:
+          mdA: Distances of A samples nearest neighbors from B
+          mdB: Distances of B samples nearest neighbors from A
+    """
+    # Minimum distances
+    mdA = [None for _ in range(len(A))]
+    mdB = [None for _ in range(len(B))]
+    
+    for i in range(len(A)):
+        for j in range(len(B)):
+            
+            d = distance(A[i], B[j], norm=norm)
+            
+            if mdA[i] == None or mdA[i] > d:
+                mdA[i] = d
+                
+            if mdB[j] == None or mdB[j] > d:
+                mdB[j] = d
+            
+    return mdA, mdB
+     
+def compute_mda(md, norm='manhattan', precision=0.2, threshold=0.1, area='simpson'):
+    """ Compute accumulation between minimum distances.
+        Gives the y axis, useful for privacy/resemblance metrics.
+        Inputs:
+          md: Minimum distances of samples from distribution (already calculated for complexity reason)
+          precision: discrepancy between two values on x axis
+          threshold: privacy/resemblance trade-off for metrics. We want the minimum distances to be above this value for respect of privacy
+          area: compute the area using the composite 'simpson' or 'trapezoidal' rule 
+        Return:
+          (x, y): Coordinates of MDA curve for A
+          (privacy, resemblance):
+            privacy: area under the curve on the left side of the threshold. We want it to be minimal.
+            resemblance: area under the curve on the right side of the threshold. We want it to be maximal.
+          threshold: return the threshold for plot
+    """
+    mini, maxi = min(md), max(md)
+    
+    # x axis
+    x = np.arange(mini, maxi, precision)
+    
+    # y axis
+    y = []
+    for e in x:
+        y.append(sum(1 for i in md if i < e))
+    
+    # Normalization
+    x, y = normalize(x, normalization='min-max'), normalize(y, normalization='min-max')
+    
+    if area == 'simpson':
+        compute_area = simps
+    elif area == 'trapezoidal':
+        compute_area = trapz
+    else:
+        raise ValueError('Argument area is invalid.')
+    
+    i = int(len(x)/10)
+    yl, yr = y[:i+1], y[i:]
+    
+    # Privacy: area under left curve
+    privacy = compute_area(yl, dx=precision)
+    
+    # Resemblance: area under right curve
+    resemblance = compute_area(yr, dx=precision)
+    
+    return (x, y), (privacy, resemblance), threshold
+ 
+def mmd(x, y):
+    """ Compute the Maximum Mean Discrepancy Metric to compare empirical distributions.
+        Ref: Gretton, A., Borgwardt, K. M., Rasch, M. J., Schölkopf, B., & Smola, A. (2012). A kernel two-sample test. Journal of Machine Learning Research, 13(Mar), 723-773.
+        Input:
+          x, y: distributions
+    """
+    input_size = len(x[0])
+    x, y = th.FloatTensor(x), th.FloatTensor(y)
+    bandwiths = [0.01, 0.1, 1, 10, 100]
+    s = th.cat([(th.ones([input_size, 1])).div(input_size),
+                    (th.ones([input_size, 1])).div(-input_size)], 0)
+    S = s.mm(s.t())
+    S = Variable(S, requires_grad=False)
+    
+    X = th.cat([x, y], 0)
+    # dot product between all combinations of rows in 'X'
+    XX = X @ X.t()
+    # dot product of rows with themselves
+    # Old code : X2 = (X * X).sum(dim=1)
+    X2 = XX.diag().unsqueeze(0)
+    # exponent entries of the RBF kernel (without the sigma) for each
+    # combination of the rows in 'X'
+    # -0.5 * (i^Ti - 2*i^Tj + j^Tj)
+    exponent = XX - 0.5 * (X2.expand_as(XX) + X2.t().expand_as(XX))
+
+    lossMMD = th.sum(S * sum([(exponent * (1./bandwith)).exp() for bandwith in bandwiths]))
+    return lossMMD.sqrt()
     
 def chi_square(col1, col2):
     """ Performs Chi2 on two DataFrame columns

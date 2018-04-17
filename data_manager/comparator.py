@@ -31,6 +31,11 @@ class Comparator():
         # Features/metrics matrix
         self.comparison_matrix = pd.DataFrame(columns=ds1.get_data_as_df()['X'].columns.values)
         self.compute_comparison_matrix()
+        
+        # Metrics and plots for privacy and resemblance
+        # TODO
+        self.mda1 = None
+        self.mda2 = None
 
     def get_ds1(self):
         return self.ds1
@@ -153,3 +158,63 @@ class Comparator():
         """ Display inter-columns comparison
         """
         display(self.comparison_matrix)
+
+
+    def compute_mda(self, norm='manhattan', precision=0.2, threshold=0.1, area='simpson'):
+        """ Compute the accumulation of minimum distances from one dataset to other.
+            Use for privacy/resemblance metrics
+        """
+        # Distributions
+        A = self.ds1.get_processed_data()['X'].as_matrix()
+        B = self.ds2.get_processed_data()['X'].as_matrix()
+        
+        # Distances to nearest neighbors
+        mdA, mdB = minimum_distance(A, B, norm=norm)
+        
+        # Curve and metrics
+        self.mda1 = compute_mda(mdA, precision=precision, threshold=threshold, area=area)
+        self.mda2 = compute_mda(mdB, precision=precision, threshold=threshold, area=area)
+        
+    
+    def show_mda(self):
+        """ Show the accumulation of minimum distances from one dataset to other.
+            Use for privacy/resemblance metrics
+        """
+        if self.mda1 == None:
+            self.compute_mda()
+            
+        (xA, yA), (privacyA, resemblanceA), thresholdA = self.mda1
+        (xB, yB), (privacyB, resemblanceB), thresholdB = self.mda2
+        
+        # Plot A
+        print('DS1')
+        plt.plot(xA, yA)
+        plt.axvline(x=thresholdA, color='r', label='threshold')
+        plt.xlabel('Distance d')
+        plt.ylabel('Number of minimum distance < d')
+        plt.title('MDA ds1 to ds2')
+        plt.show()
+        
+        printmd('** Privacy:** ' + str(privacyA))
+        printmd('** Resemblance:** ' + str(resemblanceA))
+        
+        # Plot B
+        print('DS2')
+        plt.plot(xB, yB)
+        plt.axvline(x=thresholdB, color='r', label='threshold')
+        plt.xlabel('Distance d')
+        plt.ylabel('Number of minimum distance < d')
+        plt.title('MDA ds2 to ds1')
+        plt.show()
+        
+        printmd('** Privacy:** ' + str(privacyB))
+        printmd('** Resemblance:** ' + str(resemblanceB))
+        
+     
+    def show_mmd(self):
+        """ Compute and show MMD between ds1 and ds2
+        """
+        A = self.ds1.get_processed_data()['X'].as_matrix()
+        B = self.ds2.get_processed_data()['X'].as_matrix()
+        score = mmd(A, B)
+        print('Maximum mean discrepancy: ' + str(score))
