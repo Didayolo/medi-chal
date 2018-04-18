@@ -635,7 +635,7 @@ def minimum_distance(A, B, norm='manhattan'):
             
     return mdA, mdB
      
-def compute_mda(md, norm='manhattan', precision=0.2, threshold=0.1, area='simpson'):
+def compute_mda(md, norm='manhattan', precision=0.2, threshold=None, area='simpson'):
     """ Compute accumulation between minimum distances.
         Gives the y axis, useful for privacy/resemblance metrics.
         Inputs:
@@ -650,7 +650,7 @@ def compute_mda(md, norm='manhattan', precision=0.2, threshold=0.1, area='simpso
             resemblance: area under the curve on the right side of the threshold. We want it to be maximal.
           threshold: return the threshold for plot
     """
-    mini, maxi = min(md), max(md)
+    mini, maxi = min(md), max(max(md), 1)
     
     # x axis
     x = np.arange(mini, maxi, precision)
@@ -659,9 +659,17 @@ def compute_mda(md, norm='manhattan', precision=0.2, threshold=0.1, area='simpso
     y = []
     for e in x:
         y.append(sum(1 for i in md if i < e))
+        
+    if threshold == None:
+        threshold = np.percentile(x, 5) # 5th percentile
+    
+    # Index of threshold in x
+    i = int(np.ceil(threshold / precision))
     
     # Normalization
     x, y = normalize(x, normalization='min-max'), normalize(y, normalization='min-max')
+    precision = x[1] - x[0]
+    threshold = x[i]
     
     if area == 'simpson':
         compute_area = simps
@@ -670,14 +678,13 @@ def compute_mda(md, norm='manhattan', precision=0.2, threshold=0.1, area='simpso
     else:
         raise ValueError('Argument area is invalid.')
     
-    i = int(len(x)/10)
-    yl, yr = y[:i+1], y[i:]
+    yl, yr = y[:i], y[i:]
     
     # Privacy: area under left curve
-    privacy = compute_area(yl, dx=precision)
+    privacy = compute_area(yl, dx=precision) / threshold
     
     # Resemblance: area under right curve
-    resemblance = compute_area(yr, dx=precision)
+    resemblance = compute_area(yr, dx=precision) / (1 - threshold)
     
     return (x, y), (privacy, resemblance), threshold
  

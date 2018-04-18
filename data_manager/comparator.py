@@ -160,7 +160,7 @@ class Comparator():
         display(self.comparison_matrix)
 
 
-    def compute_mda(self, norm='manhattan', precision=0.2, threshold=0.1, area='simpson'):
+    def compute_mda(self, norm='manhattan', precision=0.2, threshold=None, area='simpson'):
         """ Compute the accumulation of minimum distances from one dataset to other.
             Use for privacy/resemblance metrics
         """
@@ -195,8 +195,8 @@ class Comparator():
         plt.title('MDA ds1 to ds2')
         plt.show()
         
-        printmd('** Privacy:** ' + str(privacyA))
-        printmd('** Resemblance:** ' + str(resemblanceA))
+        printmd('** Privacy: **' + str(privacyA))
+        printmd('** Resemblance: **' + str(resemblanceA))
         
         # Plot B
         print('DS2')
