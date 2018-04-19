@@ -78,7 +78,7 @@ class AutoML():
         write(path + "_feat.name", X.columns.values)
         write(path + "_feat.type", X.dtypes)
 
-        if len(y)>0:
+        if y!=None and len(y)>0:
             write(path + ".solution", y.values)
             write(path + "_label.name", [y.name])
 
@@ -236,9 +236,16 @@ class AutoML():
             for x in df:
                 x[0] = x[0].replace("'", '').strip()
                 x[1] = x[1].replace("'", '').strip()
+                # Convert numerical information in int instead of str
+                for v in x[1]:
+                    try:
+                        x[1] = int(x[1])
+                    except:
+                        pass
             self.info = dict(zip(df[:, 0], df[:, 1]))
+
         else:
-            print('No info file file found.')
+            print('No info file found.')
 
             if os.path.exists(
                     os.path.join(self.input_dir, self.basename + '.data')):

@@ -72,8 +72,9 @@ class Comparator():
         
         # For each descriptor
         for k in list(descriptors1.keys()):
-            # Distance
-            self.descriptors_dist[k] = distance(descriptors1[k], descriptors2[k], norm=norm)
+            if k in descriptors2.keys():
+                # Distance
+                self.descriptors_dist[k] = distance(descriptors1[k], descriptors2[k], norm=norm)
             
     def compute_comparison_matrix(self):
         """ Compute a pandas DataFrame
