@@ -194,6 +194,7 @@ class Comparator():
         plt.xlabel('Distance d')
         plt.ylabel('Number of minimum distance < d')
         plt.title('MDA ds1 to ds2')
+        plt.legend()
         plt.show()
         
         printmd('** Privacy: **' + str(privacyA))
@@ -206,6 +207,7 @@ class Comparator():
         plt.xlabel('Distance d')
         plt.ylabel('Number of minimum distance < d')
         plt.title('MDA ds2 to ds1')
+        plt.legend()
         plt.show()
         
         printmd('** Privacy:** ' + str(privacyB))

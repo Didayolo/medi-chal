@@ -42,7 +42,7 @@ class AutoML():
         # autoML info
         self.info = dict()
         self.init_info(
-            os.path.join(self.input_dir, self.basename + '_public.info'))
+            os.path.join(self.input_dir, self.basename + '_public.info'), verbose=verbose)
 
         self.feat_name = self.load_name(
             os.path.join(self.input_dir, self.basename + '_feat.name'))
@@ -72,6 +72,9 @@ class AutoML():
         """
         def write(filepath, X):
             np.savetxt(filepath, X, fmt='%s')
+
+        if not os.path.isdir(input_dir):
+            os.mkdir(input_dir)
 
         path = input_dir + '/' + basename
         write(path + ".data", X.values)
@@ -219,7 +222,7 @@ class AutoML():
         return pd.read_csv(filepath, header=None).values.ravel() if os.path.exists(filepath) \
           else self.compute_feat_type()
 
-    def init_info(self, filepath):
+    def init_info(self, filepath, verbose=True):
         """
             Load a _public.info autoML file in a dictionary.
             If None, build the dictionary on its own.
@@ -245,7 +248,8 @@ class AutoML():
             self.info = dict(zip(df[:, 0], df[:, 1]))
 
         else:
-            print('No info file found.')
+            if verbose:
+                print('No info file found.')
 
             if os.path.exists(
                     os.path.join(self.input_dir, self.basename + '.data')):
