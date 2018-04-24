@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 class AutoML():
-    def __init__(self, input_dir="", basename="", verbose=False):
+    def __init__(self, input_dir="", basename="", test_size=0.2, verbose=False):
         """
             Constructor.
             Recover all autoML files available and build the AutoML structure containing them.
@@ -34,7 +34,7 @@ class AutoML():
 
         # Data
         self.data = dict()
-        self.init_data()
+        self.init_data(test_size=test_size)
         
         # Processed data
         self.processed_data = None # None while no processing has been done
@@ -114,7 +114,7 @@ class AutoML():
 
         return cls.from_df(input_dir, basename, X, y)
 
-    def init_data(self):
+    def init_data(self, test_size=0.2):
         """
             Load .data autoML files in a dictionary.
             
@@ -146,7 +146,7 @@ class AutoML():
             if os.path.exists(os.path.join(self.input_dir, self.basename + '.solution')):
                 self.data['y'] = self.load_label(
                     os.path.join(self.input_dir, self.basename + '.solution'))
-            self.train_test_split(test_size=0.2) # TODO parameter
+            self.train_test_split(test_size=test_size)
             
         else:
             raise OSError('No .data files in {}.'.format(self.input_dir))
@@ -476,6 +476,7 @@ class AutoML():
     #    """ Display type of each variable (numerical, categorical, etc.)
     #    """
     #    display(self.feat_type)
+    #    is_numerical
 
     def show_descriptors(self, processed_data=False):
         """ 
@@ -507,68 +508,61 @@ class AutoML():
             print('{}: {}'.format(key, value))
 
         # Plots
+        print('')
         printmd('** Plots **')
         
         x_sets = ['X_train']
         y_sets = []
         
+        # If there is a class
         if 'y_train' in self.data:
             y_sets.append('y_train')
+            y_sets.append('y_test')
         
         # If there is a test set
         if (len(self.data['X_test']) > 0):
             x_sets.append('X_test')
-            
-        if 'y_train' in self.data:
-            y_sets.append('y_test')
 
         if int(self.info['feat_num']) < 20: # TODO selection, plot with y
-            print('Scatter plot matrix')
+            printmd('** Scatter plot matrix **')
             sns.set(style="ticks")
             for x in x_sets:
                 print(x)
                 sns.pairplot(data[x]) 
                 plt.show()
-        
-        if len(y_sets) > 0:
-            print('Classes distribution')
-            for y in y_sets:
-                print(y)
-                show_classes(data[y])
 
-        print('Correlation matrix')
+        printmd('** Correlation matrix **')
         for x in x_sets:
             print(x)
             show_correlation(data[x])
 
-        print('Hierarchical clustering heatmap')
-        row_method = 'average'
-        column_method = 'single'
-        row_metric = 'euclidean'  #'cityblock' #cosine
-        column_metric = 'euclidean'
-        color_gradient = 'coolwarm'  #'red_white_blue
+        printmd('** Hierarchical clustering heatmap **')
         for x in x_sets:
             print(x)
-            heatmap(data[x], row_method, column_method, row_metric,
-                    column_metric, color_gradient)
+            # row_method, column_method, row_metric, column_metric, color_gradient
+            heatmap(data[x], 'average', 'single', 'euclidean',
+                    'euclidean', 'coolwarm')
 
         if len(y_sets) > 0:
-            print('Principal components analysis')
+        
+            printmd('** Classes distribution **')
+            for y in y_sets:
+                print(y)
+                show_classes(data[y])
+        
+            printmd('** Principal components analysis **')
             for i in range(len(x_sets)):
                 print(x_sets[i])
                 print(y_sets[i])
                 show_pca(data[x_sets[i]], data[y_sets[i]])
 
-            print('T-distributed stochastic neighbor embedding')
+            printmd('** T-distributed stochastic neighbor embedding **')
             for i in range(len(x_sets)):
                 print(x_sets[i])
                 print(y_sets[i])
                 show_tsne(data[x_sets[i]], data[y_sets[i]])
 
-        # Linear discriminant analysis
-        #if int(self.info['target_num']) > 2: # or label_num ?
-        if False:  # TODO
-            print('Linear discriminant analysis')
+            printmd('** Linear discriminant analysis **')
             for i in range(len(x_sets)):
                 print(x_sets[i])
                 print(y_sets[i])

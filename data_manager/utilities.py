@@ -469,7 +469,7 @@ def show_pca(X, y, i=1, j=2, verbose=False, **kwargs):
     plt.show()
 
 
-def compute_lda(X, verbose=False, **kwargs):
+def compute_lda(X, y, verbose=False, **kwargs):
     """ 
         Compute LDA.
 
@@ -480,7 +480,7 @@ def compute_lda(X, verbose=False, **kwargs):
         :rtype: Tuple
     """
     lda = LinearDiscriminantAnalysis(**kwargs)
-    X = lda.fit_transform(X)
+    X = lda.fit_transform(X, y)
 
     return lda, X
 
@@ -494,13 +494,13 @@ def show_lda(X, y, verbose=False, **kwargs):
         :param verbose: Display additional information during run
         :param **kwargs: Additional parameters for PCA (see sklearn doc)
     """
-    _, X = compute_lda(X, verbose=verbose, **kwargs)
-    
     target_names = list(y.columns)
     
     if y.shape[1] > 1:
         y = np.where(y==1)[1]
-
+    
+    _, X = compute_lda(X, y, verbose=verbose, **kwargs)
+    
     target_num = len(np.unique(y))
 
     for label in range(target_num):
