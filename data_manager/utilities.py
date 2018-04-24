@@ -43,12 +43,18 @@ from torch.autograd import Variable
 
 def printmd(string):
     """ Print Markdown string
+    
+        :param string: String to display.
     """
     display(Markdown(string))
 
 
 def is_numeric(variable):
-    """ Test if a variable (DataFrame column) is numeric or categorical 
+    """ Test if a variable (DataFrame column) is numeric or categorical.
+    
+        :param variable: DataFrame column.
+        :return: Whether variable is numerical or not.
+        :rtype: bool
     """
 
     numeric = False
@@ -64,10 +70,12 @@ def is_numeric(variable):
 
 def preprocessing(data, encoding='label', normalization='mean'):
     """ Return preprocessed DataFrame
-        Input: 
-          data: DataFrame
-          encoding: 'label', 'one-hot'
-          normalization: 'mean', 'minmax', None
+        
+        :param data: DataFrame
+        :param encoding: 'label', 'one-hot'
+        :param normalization: 'mean', 'minmax', None
+        :return: Preprocessed data
+        :rtype: pandas DataFrame
     """
 
     columns = data.columns.values
@@ -101,19 +109,28 @@ def preprocessing(data, encoding='label', normalization='mean'):
                 # Label encoding: [1, 2, 3]
                 data[column] = data[column].astype('category').cat.codes
     
-            else:
+            elif encoding in ['onehot', 'one-hot']:
                 # One-hot encoding: [0, 0, 1]
                 one_hot = pd.get_dummies(data[column])
                 data = data.drop(column, axis=1)
                 data = data.join(one_hot, lsuffix='l', rsuffix='r')
+                
+            #elif encoding in ['classmean', 'class-mean']:
+                # Categories are encoded by their class (y) mean
+                #tkt
+                
+            else:
+                raise ValueError('Argument encoding is invalid.')
 
     return data
 
 def normalize(l, normalization='probability'):
-    """ Return a normalized list
-        Input:
-          normalization: 'probability': between 0 and 1 with a sum equals to 1
+    """ Return a normalized list.
+        
+        :param normalization: 'probability': between 0 and 1 with a sum equals to 1
                          'min-max': min become 0 and max become 1
+        :return: Normalized list.
+        :rtype: list
     """
     if normalization=='probability':
         return [float(i)/sum(l) for i in l]
@@ -124,19 +141,18 @@ def normalize(l, normalization='probability'):
 
 def show_classes(y):
     """ Shows classes distribution
-		Input : y is a pandas DataFrame
+		
+		:param y: Pandas DataFrame representing classes
 	"""
     for column in y.columns:
         sns.distplot(y[column])
         plt.show()
 
-
 def show_correlation(df, size=10):
     """ Shows a graphical correlation matrix for each pair of columns in the dataframe.
 
-    Input:
-      	df: pandas DataFrame
-        size: vertical and horizontal size of the plot
+        :param df: Pandas DataFrame
+        :param size: Vertical and horizontal size of the plot
     """
 
     corr = df.corr()
@@ -145,7 +161,6 @@ def show_correlation(df, size=10):
     plt.xticks(range(len(corr.columns)), corr.columns)
     plt.yticks(range(len(corr.columns)), corr.columns)
     plt.show()
-
 
 def heatmap(X, row_method, column_method, row_metric, column_metric,
             color_gradient):
@@ -567,8 +582,9 @@ def to_frequency(columns, probability=False):
           
           Output: [[2, 3, 0], [0, 4, 1]] (with probability = False)
           
-        Input:
-          probability: True for probablities, False for frequencies
+        :param probability: True for probablities, False for frequencies.
+        :return: Frequency/probability distribution.
+        :rtype: list
     """ # TODO error if several columns have the same header
 
     # If there is only one column, just return frequencies
@@ -610,13 +626,13 @@ def to_frequency(columns, probability=False):
     
 def minimum_distance(A, B, norm='manhattan'):
     """ Compute for each element of A its distance from its nearest neighbor from B (and reciprocally)
-        Inputs:
-          A: Distribution A
-          B: Distribution B
-          norm: Norm used for distance computations
-        Return:
-          mdA: Distances of A samples nearest neighbors from B
-          mdB: Distances of B samples nearest neighbors from A
+
+        :param A: Distribution A
+        :param B: Distribution B
+        :param norm: Norm used for distance computations
+        
+        :return: mdA: Distances of A samples nearest neighbors from B
+        :return: mdB: Distances of B samples nearest neighbors from A
     """
     # Minimum distances
     mdA = [None for _ in range(len(A))]
@@ -638,12 +654,13 @@ def minimum_distance(A, B, norm='manhattan'):
 def compute_mda(md, norm='manhattan', precision=0.2, threshold=None, area='simpson'):
     """ Compute accumulation between minimum distances.
         Gives the y axis, useful for privacy/resemblance metrics.
-        Inputs:
-          md: Minimum distances of samples from distribution (already calculated for complexity reason)
-          precision: discrepancy between two values on x axis
-          threshold: privacy/resemblance trade-off for metrics. We want the minimum distances to be above this value for respect of privacy
-          area: compute the area using the composite 'simpson' or 'trapezoidal' rule 
-        Return:
+        
+        :param md: Minimum distances of samples from distribution (already calculated for complexity reason)
+        :param precision: discrepancy between two values on x axis
+        :param threshold: privacy/resemblance trade-off for metrics. We want the minimum distances to be above this value for respect of privacy
+        :param area: compute the area using the composite 'simpson' or 'trapezoidal' rule 
+        
+        :return:
           (x, y): Coordinates of MDA curve for A
           (privacy, resemblance):
             privacy: area under the curve on the left side of the threshold. We want it to be minimal.
@@ -691,8 +708,9 @@ def compute_mda(md, norm='manhattan', precision=0.2, threshold=None, area='simps
 def mmd(x, y):
     """ Compute the Maximum Mean Discrepancy Metric to compare empirical distributions.
         Ref: Gretton, A., Borgwardt, K. M., Rasch, M. J., Schölkopf, B., & Smola, A. (2012). A kernel two-sample test. Journal of Machine Learning Research, 13(Mar), 723-773.
-        Input:
-          x, y: distributions
+        
+        :param x: Distribution
+        :param y: Distribution
     """
     input_size = len(x[0])
     x, y = th.FloatTensor(x), th.FloatTensor(y)
@@ -718,12 +736,20 @@ def mmd(x, y):
     
 def chi_square(col1, col2):
     """ Performs Chi2 on two DataFrame columns
+    
+        :param col1: First column (variable)
+        :param col2: Second column (variable)
+        :return: Result of Chi2
     """
     return chi2_contingency(np.array([col1, col2]))
         
         
 def kolmogorov_smirnov(col1, col2):
     """ Performs Kolmogorov-Smirnov test on two DataFrame columns
+    
+        :param col1: First column (variable)
+        :param col2: Second column (variable)
+        :return: Result of Kolmogorov-Smirnov test
     """
     res = ks_2samp(col1, col2)
     return res[0].round(5), res[1].round(5)
@@ -731,18 +757,28 @@ def kolmogorov_smirnov(col1, col2):
 def kullback_leibler(freq1, freq2):
     """ Performs KL divergence on probability distributions
         Return a couple because this is not symetric
+        
+        :param freq1: Frequency distribution of the first variable.
+        :param freq2: Frequency distribution of the second variable.
+        :return: Kullback-Leibler divergence
     """    
     return entropy(freq1, qk=freq2).round(5), entropy(freq2, qk=freq1).round(5)
     
 def mutual_information(freq1, freq2):
     """ Performs the Kullback-Leibler divergence of the joint distribution with the product distribution of the marginals.
-        freq1 and freq2 are probability distributions.
+        
+        :param freq1: Frequency/probability distribution of the first variable.
+        :param freq2: Frequency/probability distribution of the second variable.
+        :return: The score
     """
     return mutual_info_score(freq1, freq2).round(5)
     
 def jensen_shannon(P, Q):
     """ Performs the Jensen-Shannon divergence on probability distributions.
         This metric is symetric.
+        
+        :param P: Frequency/probability distribution of the first variable.
+        :param Q: Frequency/probability distribution of the second variable.
     """
     _P = P / norm(P, ord=1)
     _Q = Q / norm(Q, ord=1)

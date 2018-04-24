@@ -17,6 +17,7 @@ class AutoML():
             :param basename: The name of the dataset (i.e. the prefix in the name of the files) 
                                 Example : files = ('iris.data', iris_feat.name', etc.)
                                           basename = 'iris'
+            :param test_size: Proportion of the dataset to include in the test split.
             :param verbose: Display additional information during run.
         """
         if os.path.isdir(input_dir):
@@ -152,6 +153,8 @@ class AutoML():
             raise OSError('No .data files in {}.'.format(self.input_dir))
 
     def train_test_split(self, **kwargs):
+        """ Apply the train test split
+        """
         if 'y' in self.data:
             self.data['X_train'], self.data['X_test'], self.data['y_train'], self.data['y_test'] = \
                  train_test_split(self.data['X'], self.data['y'], **kwargs)
@@ -286,7 +289,7 @@ class AutoML():
         """ 
             Get data as a dictionary of pandas DataFrame.
             
-            :return: Dictionary containing the data.
+            :return: Dictionary containing the data as pandas DataFrame.
             :rtype: Dict
         """
         data = dict()
@@ -311,6 +314,11 @@ class AutoML():
         return data
 
     def save(self, out_path, out_name):
+        """ Save data in auto_ml file format
+        
+            :param out_path: Path of output directory.
+            :param out_name: Basename of output files.
+        """
         def write_array(path, X):
             np.savetxt(path, X, fmt='%s')
 
@@ -396,14 +404,16 @@ class AutoML():
             self.info['task'] = 'Unknown'
         return self.info['task']
 
-    def get_processed_data(self, normalization='mean'):
+    def get_processed_data(self, encoding='label', normalization='mean'):
         """ 
             Preprocess data.
             - Missing values inputation
             - +Inf and -Inf replaced by maximum and minimum
-            - One hot encoding for categorical variables
-            - Normalization ('mean', 'minmax', None)
+            - Encoding ('label', 'one-hot') for categorical variables
+            - Normalization ('mean', 'min-max', None)
 
+            :param encoding: 'label', 'one-hot'
+            :param normalization: 'mean', 'min-max' 
             :return: Dictionnary containing the preprocessed data as Pandas DataFrame
             :rtype: Dict
         """
@@ -412,12 +422,15 @@ class AutoML():
             data_df = self.get_data_as_df()
 
             for k in list(data_df.keys()):
-                self.processed_data[k] = preprocessing(data_df[k], normalization=normalization)
+                self.processed_data[k] = preprocessing(data_df[k], encoding=encoding, normalization=normalization)
 
         return self.processed_data
 
     def compute_feat_type(self):
         """ For each variable, compute if it is numerical, categorical, etc.
+        
+            :return: List of strings, each string represent the type of a variable.
+            :rtype: list
         """
         feat_type = []
         
@@ -434,7 +447,7 @@ class AutoML():
 
     def compute_descriptors(self):
         """ 
-            Compute descriptors of the dataset and store them in self.descriptors dictionary.
+            Compute descriptors of the dataset and store them in the descriptors dictionary.
             - ratio: Dataset ratio
             - symb_ratio: Ratio of symbolic attributes
             - class_deviation: Standard deviation of class distribution
@@ -461,8 +474,7 @@ class AutoML():
         
 
     def show_info(self):
-        """ 
-            Show AutoML info 
+        """ Show AutoML info 
         """
         for k in list(self.info.keys()):
             key = k.capitalize().replace('_', ' ')
@@ -480,8 +492,18 @@ class AutoML():
 
     def show_descriptors(self, processed_data=False):
         """ 
-            Show descriptors of the dataset 
-            - Dataset ratio
+            Show descriptors of the dataset.
+            
+            Descriptors:
+            - ratio: Dataset ratio
+            - symb_ratio: Ratio of symbolic attributes
+            - class_deviation: Standard deviation of class distribution
+            - missing_proba: Probability of missing values
+            - skewness_min: Minimum skewness over features 
+            - skewness_max: Maximum skewness over features
+            - skewness_mean: Average skewness over features
+            
+            Plots:
             - Scatter plot features matrix
             - Classes distribution
             - Correlation matrix
@@ -489,6 +511,9 @@ class AutoML():
             - First two principal components
             - First two LDA components
             - T-SNE plot
+            
+            :param processed_data: Boolean defining whether to display the
+                                    descriptors of the raw data or the processed data
         """
         
         if processed_data:

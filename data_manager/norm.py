@@ -5,9 +5,13 @@ from scipy.spatial.distance import pdist, squareform
 def distance(x, y, axis=None, norm='manhattan'):
     """
         Compute the distance between x and y.
-        Input:
-              x, y, axis
-              norm: 'l0', 'manhattan', 'euclidean', 'minimum', 'maximum'
+        
+        :param x: Array-like, first point
+        :param y: Array-like, second point
+        :param axis: Axis of x along which to compute the vector norms.
+        :param norm: 'l0', 'manhattan', 'euclidean', 'minimum', 'maximum'
+        :return: Distance value
+        :rtype: float
     """
     z = x - y
 
@@ -33,6 +37,11 @@ def distcorr(X, Y):
     """
         Compute the distance correlation function.
         Works with X and Y of different dimensions (but same number of samples mandatory).
+        
+        :param X: Data
+        :param y: Class data
+        :return: Distance correlation
+        :rtype: float
     """
     X = np.atleast_1d(X)
     Y = np.atleast_1d(Y)

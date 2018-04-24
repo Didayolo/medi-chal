@@ -10,8 +10,9 @@ class Comparator():
     def __init__(self, ds1, ds2):
         """
             Constructor
-            ds1 and ds2 are AutoML objects
             
+            :param ds1: AutoML object representing the first dataset.
+            :param ds2: AutoML object representing the second dataset.
         """
         # Datasets to compare
         self.ds1 = ds1
@@ -45,8 +46,8 @@ class Comparator():
 
     def datasets_distance(self, axis=None, norm='manhattan'):
         """ Compute distance between ds1 and ds2
-            Input:
-              norm: 'l0', 'manhattan', 'euclidean', 'minimum', 'maximum'
+            
+            :param norm: 'l0', 'manhattan', 'euclidean', 'minimum', 'maximum'
         """
         data1 = self.ds1.get_processed_data()['X'].values
         data2 = self.ds2.get_processed_data()['X'].values
@@ -64,8 +65,8 @@ class Comparator():
          
     def compare_descriptors(self, norm='manhattan'):
         """ Compute distances between descriptors of ds1 and ds2.
-            Input:
-              norm: 'l0', 'manhattan', 'euclidean', 'minimum', 'maximum'
+            
+            :param norm: 'l0', 'manhattan', 'euclidean', 'minimum', 'maximum'
         """
         descriptors1 = self.ds1.descriptors
         descriptors2 = self.ds2.descriptors
@@ -104,8 +105,10 @@ class Comparator():
                 
     def classify(self, clf=LogisticRegression()):
         """ Return the score (mean accuracy) of a classifier train on the data labeled with 0 or 1 according to their original dataset.
-            Input:
-              clf: the classifier. It has to have fit(X,y) and score(X,y) methods.
+            
+            :param clf: the classifier. It has to have fit(X,y) and score(X,y) methods.
+            :return: Classification score.
+            :rtype: float
         """
         
         ds1 = self.ds1.get_processed_data()
@@ -135,8 +138,8 @@ class Comparator():
     def show_classifier_score(self, clf=LogisticRegression()):
         """ Display the score (mean accuracy) of a classifier train on the data labeled with 0 or 1 according to their original dataset.
             (return of 'classify' method)
-            Input:
-              clf: the classifier. It has to have fit(X,y) and score(X,y) methods.
+            
+            :param clf: the classifier. It has to have fit(X,y) and score(X,y) methods.
         """
         score = self.classify(clf=clf).round(5)
         print(clf)
@@ -145,7 +148,7 @@ class Comparator():
         print('\n')
           
     def show_descriptors(self):
-        """ Show descriptors distances between ds1 and ds2
+        """ Show descriptors distances between ds1 and ds2.
         """
         for k in list(self.descriptors_dist.keys()):
             key = k.capitalize().replace('_', ' ')
@@ -156,14 +159,19 @@ class Comparator():
             print('{}: {}'.format(key, value))
 
     def show_comparison_matrix(self):
-        """ Display inter-columns comparison
+        """ Display inter-columns comparison.
         """
         display(self.comparison_matrix)
 
 
     def compute_mda(self, norm='manhattan', precision=0.2, threshold=None, area='simpson'):
         """ Compute the accumulation of minimum distances from one dataset to other.
-            Use for privacy/resemblance metrics
+            Use for privacy/resemblance metrics.
+            
+            :param norm: 'l0', 'manhattan', 'euclidean', 'minimum', 'maximum'
+            :param precision: Curve sampling rate.
+            :param threshold: Privacy/resemblance threshold distance.
+            :param area: 'simpson', 'trapezoidal'
         """
         # Distributions
         A = self.ds1.get_processed_data()['X'].as_matrix()
