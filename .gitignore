@@ -3,4 +3,5 @@
 */.ipynb_checkpoints
 .ipynb_checkpoints
 */__pycache__
-sample_data/mimic_data
+data/mimic_data
+data/mimic
