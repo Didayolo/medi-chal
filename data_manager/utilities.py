@@ -6,7 +6,7 @@ import seaborn as sns
 import numpy as np
 import pandas as pd
 from IPython.display import display, Markdown
-from norm import *
+from metric import *
 
 # Hierarchical clustering
 import matplotlib as mpl

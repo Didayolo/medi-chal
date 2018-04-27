@@ -2,7 +2,7 @@
 from utilities import *
 from scipy.stats import ttest_ind
 from IPython.display import display
-from norm import *
+from metric import *
 from sklearn.linear_model import LogisticRegression
 import random
 

@@ -82,7 +82,7 @@ class AutoML():
         write(path + "_feat.name", X.columns.values)
         write(path + "_feat.type", X.dtypes)
 
-        if y!=None and len(y)>0:
+        if len(y)>0:
             write(path + ".solution", y.values)
             write(path + "_label.name", [y.name])
 
