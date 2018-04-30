@@ -663,7 +663,7 @@ def compute_mda(md, norm='manhattan', precision=0.2, threshold=None, area='simps
         :return:
           (x, y): Coordinates of MDA curve for A
           (privacy, resemblance):
-            privacy: area under the curve on the left side of the threshold. We want it to be minimal.
+            privacy: area above the curve on the left side of the threshold. We want it to be maximal.
             resemblance: area under the curve on the right side of the threshold. We want it to be maximal.
           threshold: return the threshold for plot
     """
@@ -698,7 +698,7 @@ def compute_mda(md, norm='manhattan', precision=0.2, threshold=None, area='simps
     yl, yr = y[:i], y[i:]
     
     # Privacy: area under left curve
-    privacy = compute_area(yl, dx=precision) / threshold
+    privacy = 1 - (compute_area(yl, dx=precision) / threshold)
     
     # Resemblance: area under right curve
     resemblance = compute_area(yr, dx=precision) / (1 - threshold)

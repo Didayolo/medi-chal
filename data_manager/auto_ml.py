@@ -82,7 +82,7 @@ class AutoML():
         write(path + "_feat.name", X.columns.values)
         write(path + "_feat.type", X.dtypes)
 
-        if len(y)>0:
+        if y!=None:
             write(path + ".solution", y.values)
             write(path + "_label.name", [y.name])
 
@@ -110,8 +110,9 @@ class AutoML():
         if y_path and os.path.exists(os.path.join(input_dir, y_path)):
             y = pd.read_csv(os.path.join(input_dir, y_path), header=y_header)
         else:
-            y = X.iloc[:, -1]
-            X = X.iloc[:, :-1]
+            y = None
+            #y = X.iloc[:, -1]
+            #X = X.iloc[:, :-1]
 
         return cls.from_df(input_dir, basename, X, y)
 
