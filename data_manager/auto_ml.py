@@ -12,7 +12,6 @@ class AutoML():
         """
             Constructor.
             Recover all autoML files available and build the AutoML structure containing them.
-
             :param input_dir: The directory where the autoML files are stored.
             :param basename: The name of the dataset (i.e. the prefix in the name of the files) 
                                 Example : files = ('iris.data', iris_feat.name', etc.)
@@ -82,7 +81,7 @@ class AutoML():
         write(path + "_feat.name", X.columns.values)
         write(path + "_feat.type", X.dtypes)
 
-        if y!=None:
+        if y is not None:
             write(path + ".solution", y.values)
             write(path + "_label.name", [y.name])
 
@@ -124,7 +123,6 @@ class AutoML():
                                 Example : files = (i.e 'iris.data')
                                           test_size = 0.5
                                 -> Data will be splitted 50% in X_train and 50% in X_test
-
             .. note:: If data is not splitted (i.e. no '_train.data', '_test.data'), samples are loaded in X_train.
         """
         if os.path.exists(
@@ -183,7 +181,6 @@ class AutoML():
     def load_data(self, filepath):
         """
             Load a .data autoML file in an array.
-
             :param filepath: path of the file.
             :return: array containing the data. 
             :rtype: numpy array
@@ -194,7 +191,6 @@ class AutoML():
     def load_label(self, filepath):
         """ 
             Load a .solution autoML file in an array.
-
             :param filepath: Path of the file.
             :return: Array containing the data labels. 
             :rtype: Numpy Array
@@ -283,9 +279,6 @@ class AutoML():
 
         return self.info
 
-    def get_feat_type(self):
-        return self.feat_type
-
     def get_data_as_df(self):
         """ 
             Get data as a dictionary of pandas DataFrame.
@@ -366,7 +359,6 @@ class AutoML():
     def get_type_problem(self, solution_filepath):
         """ 
             Get the type of problem directly from the solution file (in case we do not have an info file).
-
             :param solution_filepath: Path of the file
             :return: Type of the problem stored in the info dict attribute as 'task'
             :rtype: str
@@ -412,7 +404,6 @@ class AutoML():
             - +Inf and -Inf replaced by maximum and minimum
             - Encoding ('label', 'one-hot') for categorical variables
             - Normalization ('mean', 'min-max', None)
-
             :param encoding: 'label', 'one-hot'
             :param normalization: 'mean', 'min-max' 
             :return: Dictionnary containing the preprocessed data as Pandas DataFrame
@@ -593,4 +584,3 @@ class AutoML():
                 print(x_sets[i])
                 print(y_sets[i])
                 show_lda(data[x_sets[i]], data[y_sets[i]])
-
