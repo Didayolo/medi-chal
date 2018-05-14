@@ -4,11 +4,12 @@ import os
 from sklearn.model_selection import train_test_split
 import pandas as pd
 from utilities import *
+from preprocessing import *
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 class AutoML():
-    def __init__(self, input_dir="", basename="", test_size=0.2, verbose=False):
+    def __init__(self, input_dir="", basename="", verbose=False):
         """
             Constructor.
             Recover all autoML files available and build the AutoML structure containing them.
@@ -30,33 +31,27 @@ class AutoML():
          os.path.exists(os.path.join(self.input_dir, basename + '.data')):
             self.basename = basename
         else:
-            raise OSError('No .data files found')
+            raise OSError('No .data files found with prefix {}'.format(basename))
 
-        # Data
-        self.data = dict()
-        self.init_data(test_size=test_size)
-        
-        # Processed data
-        self.processed_data = None # None while no processing has been done
+        # Data.
+        self.data, self.target = dict(), dict()
+        self.init_data()
 
-        # autoML info
+        # AutoML info.
         self.info = dict()
-        self.init_info(
-            os.path.join(self.input_dir, self.basename + '_public.info'), verbose=verbose)
+        self.init_info(os.path.join(self.input_dir, self.basename + '_public.info'), verbose=verbose)
 
-        self.feat_name = self.load_name(
-            os.path.join(self.input_dir, self.basename + '_feat.name'))
-        self.label_name = self.load_name(
-            os.path.join(self.input_dir, self.basename + '_label.name'))
+        # Name of each variable.
+        self.feat_name = self.load_name(os.path.join(self.input_dir, self.basename + '_feat.name'))
+        # Name of each target.
+        self.label_name = self.load_name(os.path.join(self.input_dir, self.basename + '_label.name'))
             
-        # Type of each variable
-        self.feat_type = self.load_type(
-            os.path.join(self.input_dir, self.basename + '_feat.type'))
-        self.is_numerical = self.compute_feat_type() # to prevent error with functions that needs it
+        # Type of each variable.
+        self.feat_type = self.load_type(os.path.join(self.input_dir, self.basename + '_feat.type'))
 
-        # Meta-features
+        self.recap()
+
         self.descriptors = dict()
-        self.compute_descriptors()
 
     @classmethod
     def from_df(cls, input_dir, basename, X, y=None):
@@ -71,24 +66,30 @@ class AutoML():
             :param y: Dataset containing the labels (optional if no labels).
         """
         def write(filepath, X):
-            np.savetxt(filepath, X, fmt='%s')
+            np.savetxt(filepath, X, delimiter=' ', fmt='%s')
 
+        input_dir += '/' + basename + '_automl'
         if not os.path.isdir(input_dir):
             os.mkdir(input_dir)
 
         path = input_dir + '/' + basename
         write(path + ".data", X.values)
+        if X.columns.values.dtype == np.int64:
+            X = X.add_prefix('X')
         write(path + "_feat.name", X.columns.values)
-        write(path + "_feat.type", X.dtypes)
+        write(path + "_feat.type", get_types(X))
 
         if y is not None:
             write(path + ".solution", y.values)
-            write(path + "_label.name", [y.name])
+            if isinstance(y, pd.Series):
+                write(path + "_label.name", [y.name])
+            else:
+                write(path + "_label.name", y.columns)
 
         return cls(input_dir, basename)
 
     @classmethod
-    def from_csv(cls, input_dir, basename, X_path, y_path=None, X_header='infer', y_header='infer'):
+    def from_csv(cls, input_dir, basename, data_path, target=None, seps=[',', ' '], headers=['infer', 'infer']):
         """
             Class Method
             Build AutoML structure from CSV file.
@@ -96,87 +97,56 @@ class AutoML():
             
             :param input_dir: The directory where the autoML files will be stored.
             :param basename: The name of the dataset.
-            :param X_path: path of the .csv containing the samples.
-            :param y_path: path of the .csv containing the labels (optional if no labels).
-            :param X_header: header (parameter under review)
-            :param Y_header: header (parameter under review)
+            :param X: path of the .csv containing the samples.
+            :param y: path of the .csv containing the labels (optional if no labels).
+                           or column number (integer)
+                           or list of column numbers (list of integers).
+            :param header_X: header (parameter under review)
+            :param header_y: header (parameter under review)
         """
-        if os.path.exists(os.path.join(input_dir, X_path)):
-            X = pd.read_csv(os.path.join(input_dir, X_path), header=X_header)
+        if os.path.exists(os.path.join(input_dir, data_path)):
+            X = pd.read_csv(os.path.join(input_dir, data_path), sep=seps[0], header=headers[0], engine='python')
         else:
-            raise OSError('{} file does not exist'.format(X_path))
+            print(os.path.join(input_dir, data_path))
+            raise OSError('{} file does not exist'.format(data_path))
 
-        if y_path and os.path.exists(os.path.join(input_dir, y_path)):
-            y = pd.read_csv(os.path.join(input_dir, y_path), header=y_header)
+        if isinstance(target, str) and os.path.exists(os.path.join(input_dir, target)):
+            y = pd.read_csv(os.path.join(input_dir, y), sep=seps[1], header=headers[1], engine='python')
+        elif isinstance(target, int):
+            y = pd.Series(X[X.columns[target]], name=X.columns[target])
+            X = X.drop(X.columns[target], axis=1)
+        elif isinstance(target, list):
+            y = pd.DataFrame(X[X.columns[target]], columns=X.columns[target])
+            X = X.drop(X.columns[target], axis=1)
+        elif isinstance(target, str):
+            y = pd.Series(X[target], name=target)
+            X = X.drop([y], axis=1)
         else:
             y = None
-            #y = X.iloc[:, -1]
-            #X = X.iloc[:, :-1]
-
         return cls.from_df(input_dir, basename, X, y)
 
-    def init_data(self, test_size=0.2):
+    def init_data(self):
         """
             Load .data autoML files in a dictionary.
-            
-            :param test_size: If data is not splitted in autoML files, size of the test set.
-                                Example : files = (i.e 'iris.data')
-                                          test_size = 0.5
-                                -> Data will be splitted 50% in X_train and 50% in X_test
-            .. note:: If data is not splitted (i.e. no '_train.data', '_test.data'), samples are loaded in X_train.
         """
-        if os.path.exists(
-                os.path.join(self.input_dir, self.basename + '_train.data')):
-            self.data['X_train'] = self.load_data(
-                os.path.join(self.input_dir, self.basename + '_train.data'))
-            self.data['X_test'] = self.load_data(
-                os.path.join(self.input_dir, self.basename + '_test.data'))
-            self.data['X'] = self.data['X_train'] + self.data['X_test']
-            if os.path.exists(
-                os.path.join(self.input_dir, self.basename + '_train.solution')):
-                self.data['y_train'] = self.load_label(
-                    os.path.join(self.input_dir, self.basename + '_train.solution'))
-                self.data['y_test'] = self.load_label(
-                    os.path.join(self.input_dir, self.basename + '_test.solution'))
-                self.data['y'] = self.data['y_train'] + self.data['y_test']
-        elif os.path.exists(
-                os.path.join(self.input_dir, self.basename + '.data')):
-            self.data['X'] = self.load_data(
-                os.path.join(self.input_dir, self.basename + '.data'))  
+        if os.path.exists(os.path.join(self.input_dir, self.basename + '.data')):
+            self.data['X'] = self.load_data(os.path.join(self.input_dir, self.basename + '.data'))  
             if os.path.exists(os.path.join(self.input_dir, self.basename + '.solution')):
-                self.data['y'] = self.load_label(
-                    os.path.join(self.input_dir, self.basename + '.solution'))
-            self.train_test_split(test_size=test_size)
-            
-        else:
-            raise OSError('No .data files in {}.'.format(self.input_dir))
+                self.target['y'] = self.load_label(os.path.join(self.input_dir, self.basename + '.solution'))
 
-    def train_test_split(self, **kwargs):
-        """ Apply the train test split
-        """
-        if 'y' in self.data:
-            self.data['X_train'], self.data['X_test'], self.data['y_train'], self.data['y_test'] = \
-                 train_test_split(self.data['X'], self.data['y'], **kwargs)
-        else:
-        
-            cut = int(np.floor(self.data['X'].shape[0] * 0.8))
-            if 'test_size' in kwargs:
-                cut = int(np.floor(self.data['X'].shape[0] * (1 - kwargs.get('test_size'))))
-            elif 'train_size' in kwargs:
-                cut = int(np.floot(self.data['X'].shape[0] * kwargs.get('train_size')))
-            
-            shuffle = True
-            if 'shuffle' in kwargs:
-                shuffle = kwargs.get('shuffle')
-                
-            if shuffle:
-                self.data['X_train'], self.data['X_test'] = np.random.permutation(self.data['X'])[:cut], \
-                                                                        np.random.permutation(self.data['X'][cut:])
-            else:
-                self.data['X_train'], self.data['X_test'] = self.data['X'][:cut], self.data['X'][cut:]
-                
-        return self.data
+        if os.path.exists(os.path.join(self.input_dir, self.basename + '_train.data')):
+            self.data['Xtr'] =  self.load_data(os.path.join(self.input_dir, self.basename + '_train.data'))
+            if os.path.exists(os.path.join(self.input_dir, self.basename + '_train.solution')):
+                self.target['ytr'] =  self.load_data(os.path.join(self.input_dir, self.basename + '_train.solution'))
+            if os.path.exists(os.path.join(self.input_dir, self.basename + '_test.data')):
+                self.data['Xte'] =  self.load_data(os.path.join(self.input_dir, self.basename + '_test.data')) 
+                if os.path.exists(os.path.join(self.input_dir, self.basename + '_test.solution')):
+                    self.target['yte'] =  self.load_data(os.path.join(self.input_dir, self.basename + '_test.solution'))
 
+        if 'X' not in self.data and ('Xtr' and 'Xte' in self.data):
+            self.data['X'] = np.vstack([self.data['Xtr'], self.data['Xte']])
+            if 'y' not in self.target and ('ytr' and 'yte' in self.target):
+                self.target['y'] = np.vstack([self.target['ytr'], self.target['yte']])
 
     def load_data(self, filepath):
         """
@@ -219,8 +189,12 @@ class AutoML():
             :return: Array containing the data types. 
             :rtype: Numpy Array
         """
-        return pd.read_csv(filepath, header=None).values.ravel() if os.path.exists(filepath) \
-          else self.compute_feat_type()
+        dtypes = []
+        if os.path.exists(filepath):
+            dtypes = pd.read_csv(filepath, header=None).values.ravel()
+        else:
+            dtypes = get_types(self.data['X'])
+        return dtypes
 
     def init_info(self, filepath, verbose=True):
         """
@@ -251,130 +225,42 @@ class AutoML():
             if verbose:
                 print('No info file found.')
 
-            if os.path.exists(
-                    os.path.join(self.input_dir, self.basename + '.data')):
-                self.get_type_problem(
-                    os.path.join(self.input_dir, self.basename + '.solution'))
-            else:
-                self.get_type_problem(
-                    os.path.join(self.input_dir, self.basename + '_train.solution'))
-
             self.info['format'] = 'dense'
             self.info['is_sparse'] = 0
-            self.info['train_num'], self.info['feat_num'] = self.data['X_train'].shape
-            if ('y_train' in self.data) and ('y_test' in self.data) and ('X_train' in self.data):
-                self.info['target_num'] = self.data['y_train'].shape[1]
-                self.info['test_num'] = self.data['X_test'].shape[0]
-                assert (self.info['train_num'] == self.data['y_train'].shape[0])
-                assert (self.info['feat_num'] == self.data['X_test'].shape[1])
-                assert (self.info['test_num'] == self.data['y_test'].shape[0])
-                assert (self.info['target_num'] == self.data['y_test'].shape[1])
+            self.info['feat_num'] = self.data['X'].shape[1]
+            if 'y' in self.target:
+                self.info['target_num'] = self.target['y'].shape[1]
+                self.problem_task()
+                self.info['metric'] = 'r2_metric' if self.info['task'] == 'regression' else 'auc_metric'
+            if ('ytr' and 'yte' in self.target) and ('Xtr' and 'Xte' in self.data):
+                self.info['train_num'] = self.data['Xtr'].shape[0]
+                self.info['test_num'] = self.data['Xte'].shape[0]
+                assert (self.info['train_num'] == self.target['ytr'].shape[0])
+                assert (self.info['feat_num'] == self.data['Xte'].shape[1])
+                assert (self.info['test_num'] == self.target['yte'].shape[0])
+                assert (self.info['target_num'] == self.target['yte'].shape[1])
             self.info['usage'] = 'No info file'
             self.info['name'] = self.basename
             self.info['has_categorical'] = 0
             self.info['has_missing'] = 0
             self.info['feat_type'] = 'mixed'
             self.info['time_budget'] = 600
-            self.info['metric'] = 'r2_metric' if self.info['task'] == 'regression' else 'auc_metric'
-
         return self.info
 
-    def get_data_as_df(self):
-        """ 
-            Get data as a dictionary of pandas DataFrame.
-            
-            :return: Dictionary containing the data as pandas DataFrame.
-            :rtype: Dict
-        """
-        data = dict()
-        
-        # X/y
-        data['X'] = pd.DataFrame(self.data['X'], columns=self.feat_name)
-        if 'y' in self.data:
-            data['y'] = pd.DataFrame(self.data['y'], columns=self.label_name)
-
-        # Train/test
-        if 'X_train' and 'X_test' in self.data:
-            data['X_train'] = pd.DataFrame(
-                self.data['X_train'], columns=self.feat_name)
-            data['X_test'] = pd.DataFrame(
-                self.data['X_test'], columns=self.feat_name)
-            if 'y_train' and 'y_test' in self.data:
-                data['y_train'] = pd.DataFrame(
-                    self.data['y_train'], columns=self.label_name)
-                data['y_test'] = pd.DataFrame(
-                    self.data['y_test'], columns=self.label_name)
-                    
-        return data
-
-    def save(self, out_path, out_name):
-        """ Save data in auto_ml file format
-        
-            :param out_path: Path of output directory.
-            :param out_name: Basename of output files.
-        """
-        def write_array(path, X):
-            np.savetxt(path, X, fmt='%s')
-
-        if not os.path.isdir(out_path):
-            os.makedirs(out_path)
-
-        write_array(
-            os.path.join(out_path, out_name + '.data'),
-            self.data['X'])
-        write_array(
-            os.path.join(out_path, out_name + '_feat.name'), 
-            self.feat_name)
-
-        if 'y' in self.data:
-            write_array(
-                os.path.join(out_path, out_name + '.solution'),
-                self.data['y'])
-
-        if 'X_train' and 'X_test' in self.data:
-            write_array(
-                os.path.join(out_path, out_name + '_train.data'),
-                self.data['X_train'])
-            write_array(
-                os.path.join(out_path, out_name + '_test.data'),
-                self.data['X_test'])
-            if 'y_train' and 'y_test' in self.data:
-                write_array(
-                    os.path.join(out_path, out_name + '_test.solution'),
-                    self.data['y_train'])
-                write_array(
-                    os.path.join(out_path, out_name + '_test.solution'),
-                    self.data['y_test'])
-                write_array(
-                    os.path.join(out_path, out_name + '_label.name'),
-                    self.label_name)
-
-        with open(os.path.join(out_path, out_name + '_public.info'), 'w') as f:
-            for key, item in self.info.items():
-                f.write(str(key))
-                f.write(' = ')
-                f.write(str(item))
-                f.write('\n')
-
-    def get_type_problem(self, solution_filepath):
+    def problem_task(self):
         """ 
             Get the type of problem directly from the solution file (in case we do not have an info file).
             :param solution_filepath: Path of the file
             :return: Type of the problem stored in the info dict attribute as 'task'
             :rtype: str
         """
-        if 'task' not in self.info.keys() and 'y_train' in self.data:
-            solution = pd.read_csv(
-                solution_filepath, sep=' ', header=None).values
-            target_num = solution.shape[1]
-            self.info['target_num'] = target_num
-            if target_num == 1:  # if we have only one column
-                solution = np.ravel(solution)  # flatten
-                nbr_unique_values = len(np.unique(solution))
-                if nbr_unique_values < len(solution) / 8:
+        if 'task' not in self.info.keys():
+            solution = np.ravel(self.target['y'])
+            if self.info['target_num'] == 1:  # if we have only one column
+                if len(np.unique(solution)) < len(solution) / 8:
                     # Classification
-                    self.info['label_num'] = nbr_unique_values
-                    if nbr_unique_values == 2:
+                    self.info['label_num'] = len(np.unique(solution))
+                    if len(np.unique(solution)) == 2:
                         self.info['task'] = 'binary.classification'
                         self.info['target_type'] = 'binary'
                     else:
@@ -387,7 +273,7 @@ class AutoML():
                     self.info['target_type'] = 'numerical'
             else:
                 # Multilabel or multiclass
-                self.info['label_num'] = target_num
+                self.info['label_num'] = self.info['target_num']
                 self.info['target_type'] = 'binary'
                 if any(item > 1 for item in map(np.sum, solution.astype(int))):
                     self.info['task'] = 'multilabel.classification'
@@ -395,48 +281,121 @@ class AutoML():
                     self.info['task'] = 'multiclass.classification'
         else:
             self.info['task'] = 'Unknown'
-        return self.info['task']
 
-    def get_processed_data(self, encoding='label', normalization='mean'):
+    def show_info(self):
+        """ Show AutoML info 
+        """
+        for k in list(self.info.keys()):
+            key = k.capitalize().replace('_', ' ')
+            value = self.info[k]
+            if isinstance(value, str):
+                value = value.capitalize().replace('_', ' ').replace('.', ' ')
+
+            print('{}: {}'.format(key, value)) 
+
+    def get_data_as_df(self):
         """ 
-            Preprocess data.
-            - Missing values inputation
-            - +Inf and -Inf replaced by maximum and minimum
-            - Encoding ('label', 'one-hot') for categorical variables
-            - Normalization ('mean', 'min-max', None)
-            :param encoding: 'label', 'one-hot'
-            :param normalization: 'mean', 'min-max' 
-            :return: Dictionnary containing the preprocessed data as Pandas DataFrame
+            Get data as a dictionary of pandas DataFrame.
+            
+            :return: Dictionary containing the data as pandas DataFrame.
             :rtype: Dict
         """
-        if self.processed_data == None:
-            self.processed_data = dict()
-            data_df = self.get_data_as_df()
-
-            for k in list(data_df.keys()):
-                self.processed_data[k] = preprocessing(data_df[k], encoding=encoding, normalization=normalization)
-
-        return self.processed_data
-
-    def compute_feat_type(self):
-        """ For each variable, compute if it is numerical, categorical, etc.
+        data, target = dict(), dict()
         
-            :return: List of strings, each string represent the type of a variable.
-            :rtype: list
+        # X/y
+        if 'X' in self.data:
+            data['X'] = pd.DataFrame(self.data['X'], columns=self.feat_name)
+            if 'y' in self.target:
+                target['y'] = pd.DataFrame(self.target['y'], columns=self.label_name)
+
+        # Train/test
+        if 'Xtr' and 'Xte' in self.data:
+            data['Xtr'] = pd.DataFrame(self.data['Xtr'], columns=self.feat_name)
+            data['Xte'] = pd.DataFrame(self.data['Xte'], columns=self.feat_name)
+            if 'ytr' and 'yte' in self.target:
+                target['ytr'] = pd.DataFrame(self.target['ytr'], columns=self.label_name)
+                target['yte'] = pd.DataFrame(self.target['yte'], columns=self.label_name)       
+        return data, target
+
+    def recap(self):
+        print('------- Recap of files ------')
+        print('X: Yes') if 'X' in self.data else print('X: No')
+        print('X train: Yes') if 'Xtr' in self.data else print('X train: No')
+        print('X test: Yes') if 'Xte' in self.data else print('X test: No \n')
+        
+        print('y: Yes') if 'y' in self.target else print('y: No')
+        print('y train: Yes') if 'ytr' in self.target else print('y train: No')
+        print('y test: Yes') if 'yte' in self.target else print('y test: No \n')
+        
+    def save(self, out_path, out_name):
+        """ Save data in auto_ml file format
+        
+            :param out_path: Path of output directory.
+            :param out_name: Basename of output files.
         """
-        feat_type = []
-        
-        data = self.get_data_as_df()['X']
-        columns = data.columns.values
-        for column in columns:
-            # For numerical variables
-            if is_numeric(data[column]):
-                feat_type.append('numerical')
-            else:
-                feat_type.append('mixed')
-                
-        return feat_type
+        def write_array(path, X):
+            np.savetxt(path, X, fmt='%s')
 
+        if not os.path.isdir(out_path):
+            os.makedirs(out_path)
+
+        write_array(os.path.join(out_path, out_name + '.data'), self.data['X'])
+        write_array(os.path.join(out_path, out_name + '_feat.name'), self.feat_name)
+
+        if 'y' in self.target:
+            write_array(os.path.join(out_path, out_name + '.solution'), self.target['y'])
+
+        if 'Xtr' and 'Xte' in self.data:
+            write_array(os.path.join(out_path, out_name + '_train.data'), self.data['Xtr'])
+            write_array(os.path.join(out_path, out_name + '_test.data'), self.data['Xte'])
+            if 'ytr' and 'yte' in self.target:
+                write_array(os.path.join(out_path, out_name + '_test.solution'), self.target['ytr'])
+                write_array(os.path.join(out_path, out_name + '_test.solution'), self.target['yte'])
+                write_array(os.path.join(out_path, out_name + '_label.name'), self.label_name)
+
+        with open(os.path.join(out_path, out_name + '_public.info'), 'w') as f:
+            for key, item in self.info.items():
+                f.write(str(key))
+                f.write(' = ')
+                f.write(str(item))
+                f.write('\n')
+
+    # Under Review ...
+    def process_data(self, how='dependent', normalization='standard', categorical='label', target='label', inplace=False):
+        data, target = self.get_data_as_df()
+
+        self.data['X'] = preprocess(data['X'], self.feat_type, normalization=normalization, encoding=categorical)
+        if 'Xtr' and 'Xte' in self.data:
+            if how == 'dependent':
+                self.data['Xtr'] = self.data['X'][:self.data['Xtr'].shape[0], :]
+                self.data['Xte'] = self.data['X'][self.data['Xte'].shape[0]:, :]
+            elif how == 'independent':
+                self.data['Xtr'] = preprocess(data['Xtr'], self.feat_type, normalization=normalization, encoding=categorical)
+                self.data['Xte'] = preprocess(data['Xte'], self.feat_type, normalization=normalization, encoding=categorical)
+            else:
+                raise OSError('how argument not valid.')
+
+        if 'y' in self.target:
+            if not self.target['y'].ndim > 1:
+                self.target['y'] = preprocess(target['y'], ['Categorical'], normalization='none', encoding=target)
+                if 'ytr' and 'yte' in self.target:
+                    self.target['ytr'] = target['y'][:self.target['ytr'].shape[0]]
+                    self.target['yte'] = target['y'][self.target['yte'].shape[0]:]  
+
+    # Under review...
+    def train_test_split(self, **kwargs):
+        """ 
+            Apply the train test split
+        """
+        if 'Xtr' and 'Xte' not in self.data:
+            if 'y' in self.target:
+                self.data['Xtr'], self.data['Xte'], self.target['ytr'], self.target['yte'] = \
+                    train_test_split(self.data['X'], self.target['y'], **kwargs)
+            else:
+                self.data['Xtr'], self.data['Xte'], _, _ = \
+                    train_test_split(self.data['X'], np.zeros(self.data['X'].shape), **kwargs)
+
+    # Under review...
     def compute_descriptors(self):
         """ 
             Compute descriptors of the dataset and store them in the descriptors dictionary.
@@ -448,41 +407,25 @@ class AutoML():
             - skewness_max: Maximum skewness over features
             - skewness_mean: Average skewness over features
         """ # - defective_proba: Probability of defective records (columns with missing values)
-        data_as_df = self.get_data_as_df()
-        
-        self.descriptors['ratio'] = int(self.info['feat_num']) / int(self.info['train_num'])
+        data, target = self.get_data_as_df()
             
-        self.descriptors['symb_ratio'] = self.is_numerical.count('numeric') / len(self.is_numerical)
+        self.descriptors['symb_ratio'] = list(self.feat_type).count('Numerical') / len(self.feat_type)
         
-        if 'y' in self.data:
-             self.descriptors['class_deviation'] = data_as_df['y'].std().mean()
-        
-        self.descriptors['missing_proba'] = (data_as_df['X'].isnull().sum() / len(data_as_df['X'])).mean()
-            
-        skewness = data_as_df['X'].skew()
-        self.descriptors['skewness_min'] = skewness.min()
-        self.descriptors['skewness_max'] = skewness.max()
-        self.descriptors['skewness_mean'] = skewness.mean()
-        
+        if 'X' in self.data:
+            self.descriptors['missing_proba'] = (data['X'].isnull().sum() / len(data['X'])).mean()
+            skewness = data['X'].skew()
+            self.descriptors['skewness_min'] = skewness.min()
+            self.descriptors['skewness_max'] = skewness.max()
+            self.descriptors['skewness_mean'] = skewness.mean()
 
-    def show_info(self):
-        """ Show AutoML info 
-        """
-        for k in list(self.info.keys()):
-            key = k.capitalize().replace('_', ' ')
-            value = self.info[k]
-            if isinstance(value, str):
-                value = value.capitalize().replace('_', ' ').replace('.', ' ')
+        if 'y' in self.target:
+             self.descriptors['class_deviation'] = target['y'].std().mean()
 
-            print('{}: {}'.format(key, value))
-          
-    #def show_feat_type(self):
-    #    """ Display type of each variable (numerical, categorical, etc.)
-    #    """
-    #    display(self.feat_type)
-    #    is_numerical
+        if 'Xtr' in self.data:
+            self.descriptors['ratio'] = int(self.info['feat_num']) / int(self.info['train_num'])
 
-    def show_descriptors(self, processed_data=False):
+
+    '''def show_descriptors(self, processed_data=False):
         """ 
             Show descriptors of the dataset.
             
@@ -510,6 +453,8 @@ class AutoML():
         
         if processed_data:
             data = self.get_processed_data()
+            train = data[:self.info['train_num'], :]
+            test = data[self.info['train_num']:, :]
         else:
             data = self.get_data_as_df()
 
@@ -583,4 +528,4 @@ class AutoML():
             for i in range(len(x_sets)):
                 print(x_sets[i])
                 print(y_sets[i])
-                show_lda(data[x_sets[i]], data[y_sets[i]])
+                show_lda(data[x_sets[i]], data[y_sets[i]])'''

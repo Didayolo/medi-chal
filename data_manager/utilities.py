@@ -48,97 +48,6 @@ def printmd(string):
     """
     display(Markdown(string))
 
-
-def is_numeric(variable):
-    """ Test if a variable (DataFrame column) is numeric or categorical.
-    
-        :param variable: DataFrame column.
-        :return: Whether variable is numerical or not.
-        :rtype: bool
-    """
-
-    numeric = False
-    for value in variable:
-        # Check if there is at least one value that is a number and not NaN
-        # (isinstance consider Nan as a Number)
-        if isinstance(value, (int, float)) and not np.isnan(value):
-            numeric = True
-            break
-
-    return numeric
-
-
-def preprocessing(data, encoding='label', normalization='mean'):
-    """ Return preprocessed DataFrame
-        
-        :param data: DataFrame
-        :param encoding: 'label', 'one-hot'
-        :param normalization: 'mean', 'minmax', None
-        :return: Preprocessed data
-        :rtype: pandas DataFrame
-    """
-
-    columns = data.columns.values
-
-    for column in columns:
-
-        # For numerical variables
-        if is_numeric(data[column]): # TODO use feat_type
-
-            # Replace NaN with the median of the variable value
-            data[column] = data[column].fillna(data[column].median())
-
-            # Replace +Inf by the maximum and -Inf by the minimum
-            data[column] = data[column].replace(np.inf, max(data[column]))
-            data[column] = data[column].replace(-np.inf, min(data[column]))
-            
-            # Mean normalization
-            if normalization == 'mean':
-                data[column] = (data[column] - data[column].mean()) / data[column].std()
-    
-            # Min-max normalization
-            elif normalization in ['minmax', 'min-max']:
-                data[column] = (data[column] - data[column].min()) / (data[column].max() - data[column].min())
-
-        # For categorigal variables
-        else:
-            # Replace NaN with 'missing'
-            data[column] = data[column].fillna('missing')
-    
-            if encoding=='label':
-                # Label encoding: [1, 2, 3]
-                data[column] = data[column].astype('category').cat.codes
-    
-            elif encoding in ['onehot', 'one-hot']:
-                # One-hot encoding: [0, 0, 1]
-                one_hot = pd.get_dummies(data[column])
-                data = data.drop(column, axis=1)
-                data = data.join(one_hot, lsuffix='l', rsuffix='r')
-                
-            #elif encoding in ['classmean', 'class-mean']:
-                # Categories are encoded by their class (y) mean
-                #tkt
-                
-            else:
-                raise ValueError('Argument encoding is invalid.')
-
-    return data
-
-def normalize(l, normalization='probability'):
-    """ Return a normalized list.
-        
-        :param normalization: 'probability': between 0 and 1 with a sum equals to 1
-                         'min-max': min become 0 and max become 1
-        :return: Normalized list.
-        :rtype: list
-    """
-    if normalization=='probability':
-        return [float(i)/sum(l) for i in l]
-    elif normalization=='min-max':
-        return [(float(i) - min(l)) / (max(l) - min(l)) for i in l]
-    else: # mean std ?
-        raise ValueError('Argument normalization is invalid.')
-
 def show_classes(y):
     """ Shows classes distribution
 		
@@ -154,11 +63,11 @@ def show_correlation(df, size=10):
         :param df: Pandas DataFrame
         :param size: Vertical and horizontal size of the plot
     """
-
     corr = df.corr()
     fig, ax = plt.subplots(figsize=(size, size))
-    ax.matshow(corr)
-    plt.xticks(range(len(corr.columns)), corr.columns)
+    cax = ax.matshow(corr)
+    fig.colorbar(cax)
+    plt.xticks(range(len(corr.columns)), corr.columns, rotation = 90)
     plt.yticks(range(len(corr.columns)), corr.columns)
     plt.show()
 
