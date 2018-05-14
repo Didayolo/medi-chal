@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from IPython.display import display, Markdown
 from metric import *
+from copy import deepcopy # for preprocessing
 
 # Hierarchical clustering
 import matplotlib as mpl
@@ -77,7 +78,9 @@ def preprocessing(data, encoding='label', normalization='mean'):
         :return: Preprocessed data
         :rtype: pandas DataFrame
     """
-
+    # TODO find a way of deep copying pandas df
+    #data = _data.copy()
+    #data = deepcopy(_data)
     columns = data.columns.values
 
     for column in columns:

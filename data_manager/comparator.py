@@ -22,7 +22,7 @@ class Comparator():
         assert (ds1.info['feat_num'] == ds2.info['feat_num']), "Datasets don't have the same features number, {} != {}".format(ds1.info['feat_num'], ds2.info['feat_num'])
         
         #Check if ds1 and ds2 are the exactly same dataset. Then no need to perform comparison.
-        if self.ds1.get_data_as_df()['X'].equals(self.ds2.get_data_as_df()['X']):
+        if self.ds1.get_data('').equals(self.ds2.get_data('')):
             print("Datasets are equal")
         
         # Dictionary of distances between each descriptor of ds1 and ds2
@@ -30,7 +30,7 @@ class Comparator():
         self.compare_descriptors()
         
         # Features/metrics matrix
-        self.comparison_matrix = pd.DataFrame(columns=ds1.get_data_as_df()['X'].columns.values)
+        self.comparison_matrix = pd.DataFrame(columns=ds1.get_data('X').columns.values)
         self.compute_comparison_matrix()
         
         # Metrics and plots for privacy and resemblance
@@ -49,8 +49,8 @@ class Comparator():
             
             :param norm: 'l0', 'manhattan', 'euclidean', 'minimum', 'maximum'
         """
-        data1 = self.ds1.get_processed_data()['X'].values
-        data2 = self.ds2.get_processed_data()['X'].values
+        data1 = self.ds1.get_data('X', processed=True).values
+        data2 = self.ds2.get_data('X', processed=True).values
         return distance(data1, data2, axis=axis, norm=norm)
 
     def dcov(self):
@@ -83,8 +83,8 @@ class Comparator():
             Rows: univariate comparison metrics (numerical or categorical)
         """
         
-        data1 = self.ds1.get_processed_data()['X']
-        data2 = self.ds2.get_processed_data()['X']
+        data1 = self.ds1.get_data('X', processed=True)
+        data2 = self.ds2.get_data('X', processed=True)
         
         columns = data1.columns.values
         for i, column in enumerate(columns):
@@ -111,11 +111,13 @@ class Comparator():
             :rtype: float
         """
         
-        ds1 = self.ds1.get_processed_data()
-        ds2 = self.ds2.get_processed_data()
+        ds1_train = self.ds1.get_data('X_train', processed=True)
+        ds1_test = self.ds1.get_data('X_test', processed=True)
+        ds2_train = self.ds2.get_data('X_train', processed=True)
+        ds2_test = self.ds2.get_data('X_test', processed=True)
     
         # Train set
-        X1_train, X2_train = list(ds1['X_train'].values), list(ds2['X_train'].values)
+        X1_train, X2_train = list(ds1_train.values), list(ds2_train.values)
         X_train = X1_train + X2_train
         y_train = [0] * len(X1_train) + [1] * len(X2_train)
         
@@ -125,7 +127,7 @@ class Comparator():
         X_train[:], y_train[:] = zip(*combined)
         
         # Test set
-        X1_test, X2_test = list(ds1['X_test'].values), list(ds2['X_test'].values)
+        X1_test, X2_test = list(ds1_test.values), list(ds2_test.values)
         X_test = X1_test + X2_test
         y_test = [0] * len(X1_test) + [1] * len(X2_test)
         
@@ -174,8 +176,8 @@ class Comparator():
             :param area: 'simpson', 'trapezoidal'
         """
         # Distributions
-        A = self.ds1.get_processed_data()['X'].as_matrix()
-        B = self.ds2.get_processed_data()['X'].as_matrix()
+        A = self.ds1.get_data('X', processed=True, array=True)
+        B = self.ds2.get_data('X', processed=True, array=True)
         
         # Distances to nearest neighbors
         mdA, mdB = minimum_distance(A, B, norm=norm)
@@ -189,7 +191,7 @@ class Comparator():
         """ Show the accumulation of minimum distances from one dataset to other.
             Use for privacy/resemblance metrics
         """
-        if self.mda1 == None:
+        if self.mda1 is None:
             self.compute_mda()
             
         (xA, yA), (privacyA, resemblanceA), thresholdA = self.mda1
