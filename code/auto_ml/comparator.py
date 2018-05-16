@@ -22,7 +22,7 @@ class Comparator():
         assert (ds1.info['feat_num'] == ds2.info['feat_num']), "Datasets don't have the same features number, {} != {}".format(ds1.info['feat_num'], ds2.info['feat_num'])
         
         #Check if ds1 and ds2 are the exactly same dataset. Then no need to perform comparison.
-        if self.ds1.get_data('').equals(self.ds2.get_data('')):
+        if self.ds1.get_data().equals(self.ds2.get_data()):
             print("Datasets are equal")
         
         # Dictionary of distances between each descriptor of ds1 and ds2
@@ -56,12 +56,12 @@ class Comparator():
     def dcov(self):
         """ Compute the distance correlation between ds1 and ds2.
         """
-        return distcorr(self.ds1.data['X'], self.ds2.data['X'])
+        return distcorr(self.ds1.get_data('X'), self.ds2.get_data('X'))
 
     def t_test(self):
         """ Perform Student's t-test.
         """
-        return ttest_ind(self.ds1.data['X'], self.ds2.data['X'])
+        return ttest_ind(self.ds1.get_data('X'), self.ds2.get_data('X'))
          
     def compare_descriptors(self, norm='manhattan'):
         """ Compute distances between descriptors of ds1 and ds2.

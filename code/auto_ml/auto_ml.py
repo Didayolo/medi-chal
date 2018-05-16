@@ -343,11 +343,12 @@ class AutoML():
             Return data as a pandas Dataframe.
             You can access different subsets with the 's' argument.
             Examples:
-                get_data('') returns all the data
+                get_data() returns all the data
                 get_data('y') returns the class
                 get_data('train') returns the train set, with X and y
                 get_data('X_test') returns the X test set
             
+            :param s: Wanted set (X, y_train, all, etc.)
             :param processed: If True, the method returns processed data.
                               Please use the method process_data() to change processing parameters.
             :param array: If True, the return type is ndarray instead of pandas Dataframe.
@@ -416,7 +417,7 @@ class AutoML():
 
         write_array(
             os.path.join(out_path, out_name + '.data'),
-            self.data['X'])
+            self.get_data('X'))
         write_array(
             os.path.join(out_path, out_name + '_feat.name'), 
             self.feat_name)
@@ -424,22 +425,22 @@ class AutoML():
         if 'y' in self.data:
             write_array(
                 os.path.join(out_path, out_name + '.solution'),
-                self.data['y'])
+                self.get_data('y'))
 
         if 'X_train' and 'X_test' in self.data:
             write_array(
                 os.path.join(out_path, out_name + '_train.data'),
-                self.data['X_train'])
+                self.get_data('X_train'))
             write_array(
                 os.path.join(out_path, out_name + '_test.data'),
-                self.data['X_test'])
+                self.get_data('X_test'))
             if 'y_train' and 'y_test' in self.data:
                 write_array(
                     os.path.join(out_path, out_name + '_test.solution'),
-                    self.data['y_train'])
+                    self.get_data('y_train'))
                 write_array(
                     os.path.join(out_path, out_name + '_test.solution'),
-                    self.data['y_test'])
+                    self.get_data('y_test'))
                 write_array(
                     os.path.join(out_path, out_name + '_label.name'),
                     self.label_name)
@@ -504,7 +505,7 @@ class AutoML():
             :return: The preprocessed data
             :rtype: pd.Dataframe
         """
-        data = self.get_data('')
+        data = self.get_data()
         self.processed_data = processing(data, normalization=normalization, encoding=encoding)
         return self.processed_data
 
@@ -568,9 +569,7 @@ class AutoML():
             - skewness_max: Maximum skewness over features
             - skewness_mean: Average skewness over features
         """
-    
-        printmd('** Descriptors **')
-
+        
         for k in list(self.descriptors.keys()):
             key = k.capitalize().replace('_', ' ')
             value = self.descriptors[k]
@@ -578,13 +577,71 @@ class AutoML():
                 value = value.capitalize().replace('_', ' ').replace('.', ' ')
 
             print('{}: {}'.format(key, value))
-
-    def show_characteristics(self, processed=False):
-        """ 
-            Show characteristics of the dataset (numerical and plots).
             
-            Numerical:
-              See show_descriptors method
+    def show_pairplot(self, s='', processed=False, max_features=20):
+        feat_num = int(self.info['feat_num'])
+        if feat_num < max_features: # TODO selection, plot with y
+            sns.set(style="ticks")
+            print('Pairplot of {} set'.format(s))
+            data = self.get_data(s, processed)
+            sns.pairplot(data) 
+            plt.show()
+        else:
+            print('Too much features to pairplot. Number of features: {}, max features to plot set at: {}'.format(feat_num, max_features))
+    
+    def show_correlation(self, s='', processed=False):
+        print('Correlation matrix of {} set'.format(s))
+        data = self.get_data(s, processed)
+        show_correlation(data)
+    
+    def show_hierarchical_clustering(self, s='', processed=False):
+        print('Hierarchical clustering heatmap of {} set'.format(s))
+        # row_method, column_method, row_metric, column_metric, color_gradient
+        data = self.get_data(s, processed)
+        heatmap(data, 'average', 'single', 'euclidean', 'euclidean', 'coolwarm')
+    
+    def show_classes(self, s='', processed=False):
+        print('Classes distribution of {} set'.format(s))
+        data = self.get_data(s, processed)
+        show_classes(data)
+    
+    def show_pca(self, x='X', y='y', processed=False):
+        X = self.get_data(x, processed)
+        Y = self.get_data(y, processed)
+        lenx, leny = X.shape[0], Y.shape[0]
+        if lenx == leny:
+            print('Principal components analysis of {} and {} sets'.format(x, y))
+            show_pca(X, Y)
+        else:
+            print('Could not show PCA because X has {} rows and Y has {} rows'.format(lenx, leny))
+        
+    def show_tsne(self, x='X', y='y', processed=False):
+        X = self.get_data(x, processed)
+        Y = self.get_data(y, processed)
+        lenx, leny = X.shape[0], Y.shape[0]
+        if lenx == leny:
+            print('t-distributed stochastic neighbor embedding of {} and {} sets'.format(x, y))
+            show_tsne(X, Y)
+        else:
+            print('Could not show t-SNE because X has {} rows and Y has {} rows'.format(lenx, leny))
+        
+    def show_lda(self, x='X', y='y', processed=False):
+        X = self.get_data(x, processed)
+        Y = self.get_data(y, processed)
+        lenx, leny = X.shape[0], Y.shape[0]
+        if lenx == leny:
+            print('Linear discriminant analysis of {} and {} sets'.format(x, y))
+            show_lda(X, Y)
+        else:
+            print('Could not show LDA because X has {} rows and Y has {} rows'.format(lenx, leny))
+    
+    #show skree
+    
+    #show bi plot
+    
+    def show_plots(self, sets=['X_train', 'X_test', 'y_train', 'y_test'], processed=False):
+        """
+            Show plots that describe the dataset.
             
             Plots:
             - Scatter plot features matrix
@@ -594,78 +651,94 @@ class AutoML():
             - First two principal components
             - First two LDA components
             - T-SNE plot
-            
-            :param processed: Boolean defining whether to display the
-                                    descriptors of the raw data or the processed data
         """
+        x_sets, y_sets = self.choose_sets(sets)
         
-        # TODO separate in several methods and clear code
+        if len(x_sets) > 0:
         
-        def data(s):
-            return self.get_data(s, processed=processed)
-        
-        #data = self.get_data('', processed=processed)
-
-        # Text
-        self.show_descriptors(processed=processed)
-
-        # Plots
-        print('')
-        printmd('** Plots **')
-        
-        x_sets = ['X_train'] # X
-        y_sets = []
-        
-        # If there is a class
-        if 'y' in self.subsets:
-            y_sets.append('y_train') # y
-            y_sets.append('y_test')
-        
-        # If there is a test set
-        if 'test' in self.subsets:
-            x_sets.append('X_test')
-
-        if int(self.info['feat_num']) < 20: # TODO selection, plot with y
             printmd('** Scatter plot matrix **')
-            sns.set(style="ticks")
             for x in x_sets:
-                print(x)
-                sns.pairplot(data(x)) 
-                plt.show()
+                self.show_pairplot(x, processed)
+                    
+            printmd('** Correlation matrix **')
+            for x in x_sets:
+                self.show_correlation(x, processed)
 
-        printmd('** Correlation matrix **')
-        for x in x_sets:
-            print(x)
-            show_correlation(data(x))
+            printmd('** Hierarchical clustering heatmap **')
+            for x in x_sets:
+                self.show_hierarchical_clustering(x, processed)
 
-        printmd('** Hierarchical clustering heatmap **')
-        for x in x_sets:
-            print(x)
-            # row_method, column_method, row_metric, column_metric, color_gradient
-            heatmap(data(x), 'average', 'single', 'euclidean',
-                    'euclidean', 'coolwarm')
-
+        # If there is a class
         if len(y_sets) > 0:
         
             printmd('** Classes distribution **')
             for y in y_sets:
-                print(y)
-                show_classes(data(y))
+                self.show_classes(y, processed)
+        
+        if len(x_sets) > 0 and len(y_sets) > 0:
         
             printmd('** Principal components analysis **')
             for i in range(len(x_sets)):
-                print(x_sets[i])
-                print(y_sets[i])
-                show_pca(data(x_sets[i]), data(y_sets[i]))
+                self.show_pca(x_sets[i], y_sets[i], processed)
 
-            printmd('** T-distributed stochastic neighbor embedding **')
+            printmd('** t-distributed stochastic neighbor embedding **')
             for i in range(len(x_sets)):
-                print(x_sets[i])
-                print(y_sets[i])
-                show_tsne(data(x_sets[i]), data(y_sets[i]))
+                self.show_tsne(x_sets[i], y_sets[i], processed)
 
             printmd('** Linear discriminant analysis **')
             for i in range(len(x_sets)):
-                print(x_sets[i])
-                print(y_sets[i])
-                show_lda(data(x_sets[i]), data(y_sets[i]))
+                self.show_lda(x_sets[i], y_sets[i], processed)
+                
+       
+    def choose_sets(self, sets=[]):
+        """ 
+            Return sets for plot
+            Examples: 
+                all, X, y, train, test, X_train, X_test, y_train, y_test
+            
+            :param sets: Sets defined by user, may be wrong
+            :return: Sets without errors in x_sets and y_sets
+        """
+        x_sets = []
+        y_sets = []
+        
+        for s in sets:
+            try:
+                self.get_data(s)
+                if 'y' in s:
+                    y_sets.append(s)
+                else:
+                    x_sets.append(s)
+                                        
+            except Exception as e:
+                print('Set {} does not exist.'.format(s))
+                print(e)
+                
+        return x_sets, y_sets
+                
+    def show_characteristics(self, sets=['X_train', 'X_test', 'y_train', 'y_test'], processed=False):
+        """ 
+            Show characteristics of the dataset (numerical and plots).
+            
+            Numerical:
+              See show_descriptors method
+            
+            Plots:
+              See show_plots method
+            
+            :param sets: Sets to describe, by default 'X_train', 'X_test', 'y_train', 'y_test'
+            :param processed: Boolean defining whether to display the
+                                    descriptors of the raw data or the processed data
+        """
+
+        # Text
+        printmd('** Descriptors **')
+        self.show_descriptors(processed)
+
+        print('')
+
+        # Plots
+        printmd('** Plots **')
+        x_sets, y_sets = self.choose_sets(sets)
+        self.show_plots(sets, processed)
+              

@@ -65,6 +65,8 @@ def show_correlation(df, size=10):
         :param size: Vertical and horizontal size of the plot
     """
 
+    # TODO add scale
+
     corr = df.corr()
     fig, ax = plt.subplots(figsize=(size, size))
     ax.matshow(corr)
