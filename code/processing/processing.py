@@ -19,7 +19,7 @@ def get_types(df):
             dtypes.append('Numerical')
     return dtypes
 
-def preprocess(df, normalization, categorical):
+def processing(df, normalization, categorical):
     """
         df = Pandas DataFrame
         normalization = ['standard', 'min-max']

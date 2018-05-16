@@ -61,7 +61,6 @@ class AutoML():
         # Type of each variable
         self.feat_type = self.load_type(
             os.path.join(self.input_dir, self.basename + '_feat.type'))
-        self.is_numerical = self.compute_feat_type() # to prevent error with functions that needs it
 
         # Meta-features
         self.descriptors = dict()
@@ -274,8 +273,12 @@ class AutoML():
             :return: Array containing the data types. 
             :rtype: Numpy Array
         """
-        return pd.read_csv(filepath, header=None).values.ravel() if os.path.exists(filepath) \
-          else self.compute_feat_type()
+        dtypes = []
+        if os.path.exists(filepath):
+            dtypes = pd.read_csv(filepath, header=None).values.ravel()
+        else:
+            dtypes = get_types(self.get_data('X'))
+        return dtypes
 
     def init_info(self, filepath, verbose=True):
         """
@@ -335,7 +338,7 @@ class AutoML():
         return self.info
         
 
-    def get_data(self, s, processed=False, array=False):
+    def get_data(self, s='', processed=False, array=False):
         """ 
             Return data as a pandas Dataframe.
             You can access different subsets with the 's' argument.
@@ -502,28 +505,8 @@ class AutoML():
             :rtype: pd.Dataframe
         """
         data = self.get_data('')
-        self.processed_data = processing(data, encoding=encoding, normalization=normalization)
+        self.processed_data = processing(data, normalization=normalization, categorical=encoding)
         return self.processed_data
-
-    def compute_feat_type(self):
-        """ 
-            For each variable, compute if it is numerical, categorical, etc.
-        
-            :return: List of strings, each string represent the type of a variable.
-            :rtype: list
-        """
-        feat_type = []
-        
-        data = self.get_data('')
-        columns = data.columns.values
-        for column in columns:
-            # For numerical variables
-            if is_numeric(data[column]):
-                feat_type.append('numerical')
-            else:
-                feat_type.append('mixed')
-                
-        return feat_type
 
     def compute_descriptors(self):
         """ 
@@ -540,7 +523,7 @@ class AutoML():
         
         self.descriptors['ratio'] = int(self.info['feat_num']) / int(self.info['train_num'])
             
-        self.descriptors['symb_ratio'] = self.is_numerical.count('numeric') / len(self.is_numerical)
+        self.descriptors['symb_ratio'] = list(self.feat_type).count('Numerical') / len(self.feat_type)
         
         if 'y' in self.subsets:
             y = self.get_data('y')

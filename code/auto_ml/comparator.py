@@ -90,7 +90,7 @@ class Comparator():
         for i, column in enumerate(columns):
         
             # Numerical
-            if self.ds1.is_numerical[i] == 'numerical':
+            if self.ds1.feat_type[i] == 'Numerical':
                 self.comparison_matrix.at['Kolmogorov-Smirnov', column] = kolmogorov_smirnov(data1[column], data2[column])
             
             # Categorical, other
