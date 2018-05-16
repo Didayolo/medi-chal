@@ -3,8 +3,16 @@ import pandas as pd
 from encoding import *
 
 def get_types(df):
+    """ Get variables types: Numeric, Binary or Categorical.
+    
+        :param df: pandas Dataframe
+        :return: List of type of each variable
+        :rtype: list
+    """
+    
     x = df.copy()
     dtypes = list()
+    
     for column in x.columns:
         n = len(x[column].unique())
         try:
@@ -19,40 +27,63 @@ def get_types(df):
             dtypes.append('Numerical')
     return dtypes
 
-def processing(df, normalization, categorical):
+def processing(df, normalization, encoding):
     """
-        df = Pandas DataFrame
-        normalization = ['standard', 'min-max']
-        categorical = ['one-hot', 'likelihood', 'label']
+        Return preprocessed DataFrame
+        
+        :param df: pandas DataFrame
+        :param encoding: ['one-hot', 'likelihood', 'label']
+        :param normalization: ['standard', 'minmax', None]
+        :return: Preprocessed data
+        :rtype: pandas DataFrame
     """
-    x = df.copy()
+    
+    x = df.copy() # TODO find a way of deep copying pandas df
     types = get_types(x)
-    if categorical=='none':
+    
+    if encoding=='none':
         cols_to_remove = np.where(np.array(types)=='Categorical')[0]
         x = x.drop(x.columns[cols_to_remove], axis=1)
         types = np.delete(types, cols_to_remove)
 
+    # For numerical variables
     for column in x.columns[[i for i, j in enumerate(types) if j=='Numerical']].values:
+        
+        # Replace NaN with the median of the variable value
         x[column] = x[column].fillna(x[column].median())
+        
         # Replace +Inf by the maximum and -Inf by the minimum.
         x[column] = x[column].replace(np.inf, x[column].max())
         x[column] = x[column].replace(-np.inf, x[column].min())
+        
+        # Mean normalization
         if normalization == 'standard':
             x[column] = (x[column] - x[column].mean()) / x[column].std()
+        
+        # Min-max normalization
         elif normalization == 'min-max':
             x[column] = (x[column] - x[column].min()) / (x[column].max() - x[column].min())
 
+    # For binary variables
     for column in x.columns[[i for i, j in enumerate(types) if j=='Binary']].values:
         x = label_encoding(x, column)
 
+    # For categorigal variables
     for column in x.columns[[i for i, j in enumerate(types) if j=='Categorical']].values:
+        
         # Replace NaN with 'missing'.
         x[column] = x[column].fillna('missing')
-        if categorical=='one-hot':
+        
+        # One-hot encoding: [0, 0, 1]
+        if encoding=='one-hot':
             x = one_hot_encoding(x, column)
-        elif categorical=='likelihood':
+            
+        # Likelihood encoding
+        elif encoding=='likelihood':
             x = likelihood_encoding(x, column)
-        elif categorical=='label':
+            
+        # Label encoding: [1, 2, 3]
+        elif encoding=='label':
             x = label_encoding(x, column)
 
     return x

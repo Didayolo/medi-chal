@@ -505,7 +505,7 @@ class AutoML():
             :rtype: pd.Dataframe
         """
         data = self.get_data('')
-        self.processed_data = processing(data, normalization=normalization, categorical=encoding)
+        self.processed_data = processing(data, normalization=normalization, encoding=encoding)
         return self.processed_data
 
     def compute_descriptors(self):
