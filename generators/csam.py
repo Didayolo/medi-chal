@@ -234,6 +234,7 @@ class SAM(object):
         df_data = np.concatenate(onehotdata, 1)
 
         data = df_data.astype('float32')
+        self.data = df_data
         data = th.from_numpy(data)
         if self.batchsize == -1:
             self.batchsize = data.shape[0]
@@ -340,7 +341,7 @@ class SAM(object):
                 l1_reg = self.l1 * filters.sum()
                 loss = gen_loss + l1_reg
 
-                if verbose and not epoch % 200:
+                if verbose and not epoch % 20:
 
                     print(str(i) + " " + d_str.format(epoch,
                                                       adv_loss.cpu().item(),
