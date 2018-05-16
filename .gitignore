@@ -1,7 +1,5 @@
-.DS_Store
-*/.DS_Store
-*/.ipynb_checkpoints
-.ipynb_checkpoints
-*/__pycache__
+**/DS_Store
+**/.ipynb_checkpoints
+**/__pycache__
 data/mimic_old
 data/mimic
