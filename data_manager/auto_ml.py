@@ -33,7 +33,10 @@ class AutoML():
         else:
             raise OSError('No .data files found')
 
-        # TODO
+        # The subsets dictionnary contains the train/test and the X/y splits
+        # Examples:
+        #   subsets['train'] = [0, 1, 3, 4] (index of train rows)
+        #   subsets['y'] = ['class'] (headers of y columns)
         self.subsets = dict()
 
         # Column names
@@ -315,12 +318,27 @@ class AutoML():
         
 
     def get_data(self, s, processed=False, array=False):
-        """ None, X_train, y_test...
+        """ 
+            Return data as a pandas Dataframe.
+            You can access different subsets with the 's' argument.
+            Examples:
+                get_data('') returns all the data
+                get_data('y') returns the class
+                get_data('train') returns the train set, with X and y
+                get_data('X_test') returns the X test set
+            
+            :param processed: If True, the method returns processed data.
+                              Please use the method process_data() to change processing parameters.
+            :param array: If True, the return type is ndarray instead of pandas Dataframe.
+            :return: The data.
+            :rtype: pd.Dataframe
         """
         
         if s in ['', 'all', 'data']:
          return self.data
-       
+        
+        # We split the data using self.subsets
+        # Thanks to this, processings are done only once
         if '_' in s: # For example 'X_train' 
             c, i = s.split('_') # c = 'X', i = 'train'
             instances = self.subsets[i]
@@ -359,8 +377,9 @@ class AutoML():
         
         
     def set_data(self):
+        """ TODO, a method to set subsets
+        """
         pass
-
 
     def save(self, out_path, out_name):
         """ Save data in auto_ml file format
@@ -461,15 +480,16 @@ class AutoML():
             - Normalization ('mean', 'min-max', None)
             :param encoding: 'label', 'one-hot'
             :param normalization: 'mean', 'min-max' 
-            :return: Dictionnary containing the preprocessed data as Pandas DataFrame
-            :rtype: Dict
+            :return: The preprocessed data
+            :rtype: pd.Dataframe
         """
         data = self.get_data('')
         self.processed_data = preprocessing(data, encoding=encoding, normalization=normalization)
         return self.processed_data
 
     def compute_feat_type(self):
-        """ For each variable, compute if it is numerical, categorical, etc.
+        """ 
+            For each variable, compute if it is numerical, categorical, etc.
         
             :return: List of strings, each string represent the type of a variable.
             :rtype: list
@@ -535,7 +555,8 @@ class AutoML():
 
 
     def show_descriptors(self, processed=False):
-        """ Show numerical descriptors of the dataset.
+        """ 
+            Show numerical descriptors of the dataset.
             
             Descriptors:
             - ratio: Dataset ratio
@@ -558,7 +579,8 @@ class AutoML():
             print('{}: {}'.format(key, value))
 
     def show_characteristics(self, processed=False):
-        """ Show characteristics of the dataset (numerical and plots).
+        """ 
+            Show characteristics of the dataset (numerical and plots).
             
             Numerical:
               See show_descriptors method
@@ -575,6 +597,9 @@ class AutoML():
             :param processed: Boolean defining whether to display the
                                     descriptors of the raw data or the processed data
         """
+        
+        # TODO separate in several methods and clear code
+        
         def data(s):
             return self.get_data(s, processed=processed)
         
