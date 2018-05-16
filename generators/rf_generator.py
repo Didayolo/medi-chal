@@ -2,7 +2,7 @@
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import RandomForestClassifier
-problem_dir = 'data_manager/'  
+problem_dir = 'code/auto_ml'  
 from sys import path
 path.append(problem_dir)
 from auto_ml import AutoML
