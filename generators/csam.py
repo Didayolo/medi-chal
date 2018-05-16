@@ -340,13 +340,13 @@ class SAM(object):
                 l1_reg = self.l1 * filters.sum()
                 loss = gen_loss + l1_reg
 
-                if verbose:
+                if verbose and not epoch % 200:
 
                     print(str(i) + " " + d_str.format(epoch,
-                                                      adv_loss.cpu().data[0],
+                                                      adv_loss.cpu().item(),
                                                       gen_loss.cpu(
-                                                      ).data[0] / cols,
-                                                      l1_reg.cpu().data[0]))
+                                                      ).item() / cols,
+                                                      l1_reg.cpu().item()))
                 loss.backward()
                 # STORE ASSYMETRY values for output
                 if epoch >= self.train:
