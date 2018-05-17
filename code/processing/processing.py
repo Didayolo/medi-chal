@@ -27,7 +27,7 @@ def get_types(df):
             dtypes.append('Numerical')
     return dtypes
 
-def processing(df, normalization='mean', encoding='label'):
+def processing(df, normalization='mean', encoding='label', missing='median'):
     """
         Return preprocessed DataFrame
         
@@ -50,7 +50,12 @@ def processing(df, normalization='mean', encoding='label'):
     for column in x.columns[[i for i, j in enumerate(types) if j=='Numerical']].values:
         
         # Replace NaN with the median of the variable value
-        x[column] = x[column].fillna(x[column].median())
+        if missing == 'remove':
+            x = x.dropna(axis=0)
+        if missing == 'median':
+            x[column] = x[column].fillna(x[column].median())
+        if missing == 'mean':
+            x[column] = x[column].fillna(x[column].mean())
         
         # Replace +Inf by the maximum and -Inf by the minimum.
         x[column] = x[column].replace(np.inf, x[column].max())

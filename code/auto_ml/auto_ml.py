@@ -104,7 +104,7 @@ class AutoML():
         return cls(input_dir, basename)
 
     @classmethod
-    def from_csv(cls, input_dir, basename, data_path, target=None, seps=[', ', ', '], headers=['infer', 'infer']):
+    def from_csv(cls, input_dir, basename, data_path, target=None, seps=[',', ','], headers=['infer', 'infer']):
         """
             Class Method
             Build AutoML structure from CSV file.
@@ -495,20 +495,20 @@ class AutoML():
             self.info['task'] = 'Unknown'
         return self.info['task']
 
-    def process_data(self, normalization='mean', encoding='label'):
+    def process_data(self, normalization='mean', encoding='label', missing='median'):
         """ 
             Preprocess data.
             - Missing values inputation
             - +Inf and -Inf replaced by maximum and minimum
             - Encoding ('label', 'one-hot') for categorical variables
             - Normalization ('mean', 'min-max', None)
-            :param encoding: 'label', 'one-hot'
+            :param encoding: 'label', 'one-hot', 'likelihood'
             :param normalization: 'mean', 'min-max' 
-            :return: The preprocessed data
+            :return: Preprocessed data
             :rtype: pd.DataFrame
         """
         data = self.get_data()
-        self.processed_data = processing(data, normalization=normalization, encoding=encoding)
+        self.processed_data = processing(data, normalization=normalization, encoding=encoding, missing=missing)
         return self.processed_data
 
     def compute_descriptors(self):

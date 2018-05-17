@@ -59,18 +59,16 @@ def show_classes(y):
         plt.show()
 
 def show_correlation(df, size=10):
-    """ Shows a graphical correlation matrix for each pair of columns in the dataframe.
-
+    """ 
+        Shows a graphical correlation matrix for each pair of columns in the dataframe.
         :param df: Pandas DataFrame
         :param size: Vertical and horizontal size of the plot
     """
-
-    # TODO add scale
-
     corr = df.corr()
     fig, ax = plt.subplots(figsize=(size, size))
-    ax.matshow(corr)
-    plt.xticks(range(len(corr.columns)), corr.columns)
+    cax = ax.matshow(corr)
+    fig.colorbar(cax)
+    plt.xticks(range(len(corr.columns)), corr.columns, rotation = 90)
     plt.yticks(range(len(corr.columns)), corr.columns)
     plt.show()
 

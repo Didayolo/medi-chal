@@ -6,7 +6,7 @@ from sklearn.preprocessing import LabelEncoder
 
 def one_hot_encoding(df, column):
     """ 
-        Performs one-hot encoding
+        Performs one-hot encoding.
         Example:
             Color: ['black', 'white', 'white']
             is encoded by
@@ -25,7 +25,7 @@ def one_hot_encoding(df, column):
 
 def likelihood_encoding(df, column):
     """ 
-        Performs likelihood encoding
+        Performs likelihood encoding.
             
         :param df: Data
         :param column: Column to encode
@@ -41,7 +41,7 @@ def likelihood_encoding(df, column):
 
 def label_encoding(df, column):
     """ 
-        Performs label encoding
+        Performs label encoding.
         Example:
             Color: ['blue', 'green', 'blue', 'pink']
             is encoded by
