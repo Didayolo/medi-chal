@@ -102,7 +102,7 @@ class AutoML():
         return cls(input_dir, basename)
 
     @classmethod
-    def from_csv(cls, input_dir, basename, data_path, target=None, seps=[',', ' '], headers=['infer', 'infer']):
+    def from_csv(cls, input_dir, basename, data_path, target=None, seps=[', ', ', '], headers=['infer', 'infer']):
         """
             Class Method
             Build AutoML structure from CSV file.
@@ -118,13 +118,13 @@ class AutoML():
             :param header_y: header (parameter under review)
         """
         if os.path.exists(os.path.join(input_dir, data_path)):
-            X = pd.read_csv(os.path.join(input_dir, data_path), sep=seps[0], header=headers[0], engine='python')
+            X = pd.read_csv(os.path.join(input_dir, data_path), sep=seps[0], header=headers[0])
         else:
             print(os.path.join(input_dir, data_path))
             raise OSError('{} file does not exist'.format(data_path))
 
         if isinstance(target, str) and os.path.exists(os.path.join(input_dir, target)):
-            y = pd.read_csv(os.path.join(input_dir, y), sep=seps[1], header=headers[1], engine='python')
+            y = pd.read_csv(os.path.join(input_dir, y), sep=seps[1], header=headers[1])
         elif isinstance(target, int):
             y = pd.Series(X[X.columns[target]], name=X.columns[target])
             X = X.drop(X.columns[target], axis=1)
