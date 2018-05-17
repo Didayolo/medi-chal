@@ -66,7 +66,7 @@ class AutoML():
 
         # Meta-features
         self.descriptors = dict()
-        self.compute_descriptors()
+        #self.compute_descriptors()
 
     @classmethod
     def from_df(cls, input_dir, basename, X, y=None):
@@ -263,7 +263,7 @@ class AutoML():
         """
         return pd.read_csv(filepath, header=None).values.ravel() if os.path.exists(filepath) \
           else None
-          # When None is given to a pandas dataframe, it automatically generate index
+          # When None is given to a pandas DataFrame, it automatically generate index
           #else ['X' + str(i) for i in range(self.info['feat_num'])]
 
     def load_type(self, filepath):
@@ -511,7 +511,7 @@ class AutoML():
         self.processed_data = processing(data, normalization=normalization, encoding=encoding, missing=missing)
         return self.processed_data
 
-    def compute_descriptors(self):
+    def compute_descriptors(self, processed=False):
         """ 
             Compute descriptors of the dataset and store them in the descriptors dictionary.
             - ratio: Dataset ratio
@@ -522,7 +522,7 @@ class AutoML():
             - skewness_max: Maximum skewness over features
             - skewness_mean: Average skewness over features
         """ # - defective_proba: Probability of defective records (columns with missing values)
-        X = self.get_data('X')
+        X = self.get_data('X', processed=processed)
         
         self.descriptors['ratio'] = int(self.info['feat_num']) / int(self.info['train_num'])
             
@@ -571,6 +571,7 @@ class AutoML():
             - skewness_max: Maximum skewness over features
             - skewness_mean: Average skewness over features
         """
+        self.compute_descriptors(processed=processed)
         
         for k in list(self.descriptors.keys()):
             key = k.capitalize().replace('_', ' ')
