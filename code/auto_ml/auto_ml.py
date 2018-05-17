@@ -21,7 +21,9 @@ class AutoML():
             :param test_size: Proportion of the dataset to include in the test split.
             :param verbose: Display additional information during run.
         """
-        if os.path.isdir(input_dir):
+        if os.path.isdir(os.path.join(input_dir, basename + '_automl')):
+            self.input_dir = os.path.join(input_dir, basename + '_automl')
+        elif os.path.isdir(input_dir):
             self.input_dir = input_dir
         else:
             raise OSError(
