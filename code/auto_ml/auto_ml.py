@@ -340,7 +340,7 @@ class AutoML():
 
     def get_data(self, s='', processed=False, array=False):
         """ 
-            Return data as a pandas Dataframe.
+            Return data as a pandas DataFrame.
             You can access different subsets with the 's' argument.
             Examples:
                 get_data() returns all the data
@@ -351,13 +351,14 @@ class AutoML():
             :param s: Wanted set (X, y_train, all, etc.)
             :param processed: If True, the method returns processed data.
                               Please use the method process_data() to change processing parameters.
-            :param array: If True, the return type is ndarray instead of pandas Dataframe.
+            :param array: If True, the return type is ndarray instead of pandas DataFrame.
             :return: The data.
-            :rtype: pd.Dataframe
+            :rtype: pd.DataFrame
         """
         
         if s in ['', 'all', 'data']:
-         return self.data
+            instances = self.data.index.values
+            columns = self.data.columns.values
         
         # We split the data using self.subsets
         # Thanks to this, processings are done only once
@@ -386,7 +387,6 @@ class AutoML():
                 self.process_data()
             data = self.processed_data.loc[instances, columns]
         else:
-            # as I understood it: (Adrien)
             # at is a fast accessor
             # loc is slower but can manage subsets
             data = self.data.loc[instances, columns]
@@ -493,7 +493,7 @@ class AutoML():
             self.info['task'] = 'Unknown'
         return self.info['task']
 
-    def process_data(self, encoding='label', normalization='mean'):
+    def process_data(self, normalization='mean', encoding='label'):
         """ 
             Preprocess data.
             - Missing values inputation
@@ -503,7 +503,7 @@ class AutoML():
             :param encoding: 'label', 'one-hot'
             :param normalization: 'mean', 'min-max' 
             :return: The preprocessed data
-            :rtype: pd.Dataframe
+            :rtype: pd.DataFrame
         """
         data = self.get_data()
         self.processed_data = processing(data, normalization=normalization, encoding=encoding)
@@ -639,7 +639,7 @@ class AutoML():
     
     #show bi plot
     
-    def show_plots(self, sets=['X_train', 'X_test', 'y_train', 'y_test'], processed=False):
+    def show_plots(self, sets=['X_train', 'X_test', 'y_train', 'y_test'], processed=False, max_features=20):
         """
             Show plots that describe the dataset.
             
@@ -658,7 +658,7 @@ class AutoML():
         
             printmd('** Scatter plot matrix **')
             for x in x_sets:
-                self.show_pairplot(x, processed)
+                self.show_pairplot(x, processed, max_features=max_features)
                     
             printmd('** Correlation matrix **')
             for x in x_sets:
@@ -716,7 +716,7 @@ class AutoML():
                 
         return x_sets, y_sets
                 
-    def show_characteristics(self, sets=['X_train', 'X_test', 'y_train', 'y_test'], processed=False):
+    def show_characteristics(self, sets=['X_train', 'X_test', 'y_train', 'y_test'], processed=False, max_features=20):
         """ 
             Show characteristics of the dataset (numerical and plots).
             
@@ -740,5 +740,5 @@ class AutoML():
         # Plots
         printmd('** Plots **')
         x_sets, y_sets = self.choose_sets(sets)
-        self.show_plots(sets, processed)
+        self.show_plots(sets, processed, max_features=max_features)
               

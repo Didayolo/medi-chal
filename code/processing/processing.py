@@ -5,7 +5,7 @@ from encoding import *
 def get_types(df):
     """ Get variables types: Numeric, Binary or Categorical.
     
-        :param df: pandas Dataframe
+        :param df: pandas DataFrame
         :return: List of type of each variable
         :rtype: list
     """
@@ -27,7 +27,7 @@ def get_types(df):
             dtypes.append('Numerical')
     return dtypes
 
-def processing(df, normalization, encoding):
+def processing(df, normalization='mean', encoding='label'):
     """
         Return preprocessed DataFrame
         
@@ -35,13 +35,13 @@ def processing(df, normalization, encoding):
         :param encoding: ['one-hot', 'likelihood', 'label']
         :param normalization: ['standard', 'minmax', None]
         :return: Preprocessed data
-        :rtype: pandas DataFrame
+        :rtype: pd.DataFrame
     """
     
-    x = df.copy() # TODO find a way of deep copying pandas df
+    x = df.copy()
     types = get_types(x)
     
-    if encoding=='none':
+    if encoding in ['None', 'none'] or encoding is None:
         cols_to_remove = np.where(np.array(types)=='Categorical')[0]
         x = x.drop(x.columns[cols_to_remove], axis=1)
         types = np.delete(types, cols_to_remove)
@@ -70,7 +70,7 @@ def processing(df, normalization, encoding):
 
     # For categorigal variables
     for column in x.columns[[i for i, j in enumerate(types) if j=='Categorical']].values:
-        
+
         # Replace NaN with 'missing'.
         x[column] = x[column].fillna('missing')
         
