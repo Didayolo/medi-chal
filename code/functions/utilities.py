@@ -49,6 +49,21 @@ def printmd(string):
     """
     display(Markdown(string))
 
+def normalize(l, normalization='probability'):
+    """ Return a normalized list
+        Input:
+          normalization: 'probability': between 0 and 1 with a sum equals to 1
+                         'min-max': min become 0 and max become 1
+    """
+    if normalization=='probability':
+        return [float(i)/sum(l) for i in l]
+    
+    elif normalization=='min-max':
+        return [(float(i) - min(l)) / (max(l) - min(l)) for i in l]
+    
+    else: # mean std ?
+        raise ValueError('Argument normalization is invalid.')
+
 def show_classes(y):
     """ Shows classes distribution
 		

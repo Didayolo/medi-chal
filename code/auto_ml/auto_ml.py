@@ -83,7 +83,7 @@ class AutoML():
         def write(filepath, X):
             np.savetxt(filepath, X, delimiter=' ', fmt='%s')
 
-        input_dir += '/' + basename + '_automl'
+        #input_dir += '/' + basename + '_automl'
         if not os.path.isdir(input_dir):
             os.mkdir(input_dir)
 

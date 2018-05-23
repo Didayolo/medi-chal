@@ -25,7 +25,7 @@ class RF_generator():
     
     
     def get_data(self):
-        return self.ds.get_processed_data()['X']
+        return self.ds.get_data('X', processed=True)
     
     
     def fit(self, **kwargs):
@@ -41,7 +41,7 @@ class RF_generator():
             X = data.drop(data.columns[i], axis=1) 
             
             # Regressor or classifier
-            if self.ds.is_numerical[i] == 'numerical':
+            if self.ds.feat_type[i] == 'Numerical':
                 model = self.regressor(**kwargs)
             else:
                 model = self.classifier(**kwargs)
