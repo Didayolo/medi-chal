@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from encoding import *
+from normalization import *
 
 def get_types(df):
     """ Get variables types: Numeric, Binary or Categorical.

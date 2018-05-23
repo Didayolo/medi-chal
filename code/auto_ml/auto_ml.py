@@ -4,7 +4,10 @@ import os
 from sklearn.model_selection import train_test_split
 import pandas as pd
 from utilities import *
-from processing import *
+import processing
+import normalization
+import encoding
+import imputation
 import matplotlib.pyplot as plt
 import seaborn as sns
 import random
@@ -53,7 +56,7 @@ class AutoML():
         self.init_data(test_size=test_size)
         
         # Processed data
-        self.processed_data = None # None while no processing has been done
+        self.processed_data = self.data.copy() 
 
         # autoML info
         self.info = dict()
@@ -92,7 +95,7 @@ class AutoML():
         if X.columns.values.dtype == np.int64:
             X = X.add_prefix('X')
         write(path + "_feat.name", X.columns.values)
-        write(path + "_feat.type", get_types(X))
+        write(path + "_feat.type", processing.get_types(X))
 
         if y is not None:
             write(path + ".solution", y.values)
@@ -279,7 +282,7 @@ class AutoML():
         if os.path.exists(filepath):
             dtypes = pd.read_csv(filepath, header=None).values.ravel()
         else:
-            dtypes = get_types(self.get_data('X'))
+            dtypes = processing.get_types(self.get_data('X'))
         return dtypes
 
     def init_info(self, filepath, verbose=True):
@@ -385,8 +388,6 @@ class AutoML():
         
         # Get processed data
         if processed:
-            if self.processed_data is None:
-                self.process_data()
             data = self.processed_data.loc[instances, columns]
         else:
             # at is a fast accessor
@@ -400,10 +401,40 @@ class AutoML():
         return data
         
         
-    def set_data(self):
-        """ TODO, a method to set subsets
-        """
-        pass
+    def set_data(self, values, s='', processed=False):
+        if s in ['', 'all', 'data']:
+            instances = self.data.index.values
+            columns = self.data.columns.values
+        
+        # We split the data using self.subsets
+        # Thanks to this, processings are done only once
+        if '_' in s: # For example 'X_train' 
+            c, i = s.split('_') # c = 'X', i = 'train'
+            instances = self.subsets[i]
+            columns = self.subsets[c]
+        
+        else:
+            if s == 'X':
+                instances = self.data.index.values
+                columns = self.subsets['X']
+            elif s == 'y':
+                instances = self.data.index.values
+                columns = self.subsets['y']
+            elif s == 'train':
+                instances = self.subsets['train']
+                columns = self.data.columns.values
+            elif s == 'test':
+                instances = self.subsets['test']
+                columns = self.data.columns.values
+        
+        if self.data.loc[instances, columns].shape == values.shape:
+            if processed:
+                self.processed_data.loc[instances, columns] = values
+            else:
+                self.data.loc[instances, columns] = values
+        else:
+            print('Array passed has shape {} whereas array \
+                   to change has shape {}. \n No changes done.'.format(values.shape, self.data.loc[instances, columns]))
 
     def save(self, out_path, out_name):
         """ Save data in auto_ml file format
@@ -495,7 +526,7 @@ class AutoML():
             self.info['task'] = 'Unknown'
         return self.info['task']
 
-    def process_data(self, normalization='mean', encoding='label', missing='median'):
+    def process_data(self, norm='standard', code='label', missing=['median', 'mean', 'median']):
         """ 
             Preprocess data.
             - Missing values inputation
@@ -507,8 +538,127 @@ class AutoML():
             :return: Preprocessed data
             :rtype: pd.DataFrame
         """
-        data = self.get_data()
-        self.processed_data = processing(data, normalization=normalization, encoding=encoding, missing=missing)
+        self.imputation(binary=missing[0], categorical=missing[1], numerical=missing[2])
+        self.encoding(code=code)
+        self.normalization(norm=norm)
+        return self.processed_data
+
+    def _impute(self, data, columns, how='remove'):
+        imputed_data = data.copy()
+        if how == 'remove':
+             imputed_data = imputation.mean(data, columns)
+        elif how == 'median':
+            for column in columns:
+                imputed_data = imputation.median(data, column)
+        elif how == 'mean':
+            for column in columns:
+                imputed_data = imputation.median(data, column)
+        else:
+            raise OSError('{} imputation is not taken in charge'.format(how))
+        return imputed_data
+
+    
+    def imputation(self, binary='remove', categorical='remove', numerical='remove'):
+        """
+            Impute missing values.
+            :param binary: 'remove', 'mean', 'median'
+            :param categorical: 'remove', 'mean', 'median'
+            :param numerical: 'remove', 'mean', 'median'
+            :return: data with imputed values.
+            :rtype: pd.DataFrame
+
+        """
+        imputed_data = self.get_data('X')
+
+        # For Binary variables
+        binary_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Binary']].values
+        imputed_data = self._impute(imputed_data, binary_columns, how=binary)
+
+        # For Categorical variables
+        categorical_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Categorical']].values        
+        imputed_data = self._impute(imputed_data, categorical_columns, how=categorical)
+
+        # For Numerical variables
+        numerical_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Numerical']].values
+        imputed_data = self._impute(imputed_data, numerical_columns, how=numerical)
+
+        self.set_data(imputed_data, 'X', processed=True)
+
+        return self.processed_data
+
+    def normalization(self, norm='standard'):
+        """
+            Normalize the data
+            :param norm: 'standard', 'min-max'
+            :return: normalized data
+            :rtype: pd.DataFrame
+        """
+        normalized_train = self.get_data('X_train')
+        normalized_test = self.get_data('X_test')
+
+        numerical_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Numerical']].values
+
+        # For numerical variables
+        for column in numerical_columns:
+            # Standard normalization
+            if norm == 'standard':
+                normalized_train, (mean, std) = \
+                    normalization.standard(normalized_train, column)
+                normalized_test, _ = \
+                    normalization.standard(normalized_test, column, mean, std)
+            # Min-Max normalization
+            elif norm == 'min-max':
+                normalized_train, (min, max) = \
+                    normalization.min_max(normalized_train, column)
+                normalized_test, _ = \
+                    normalization.min_max(normalized_test, column, min, max)
+
+        self.set_data(normalized_train, 'X_train', processed=True)
+        self.set_data(normalized_test, 'X_test', processed=True)
+
+        return self.processed_data
+
+    def encoding(self, code='label'):
+        encoded_train = self.get_data('X_train')
+        encoded_test = self.get_data('X_test')
+
+        binary_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Binary']].values
+        categorical_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Categorical']].values
+
+        # For binary variables
+        for column in binary_columns:
+            encoded_train, mapping = \
+                encoding.label(encoded_train, column)
+            encoded_test, _ = \
+                encoding.label(encoded_test, column, mapping)
+
+        # For categorigal variables
+        for column in categorical_columns:
+            
+            # One-hot encoding: [0, 0, 1]
+            if code=='one-hot':
+                encoded_train.loc[self.subsets['train']], mapping = \
+                    encoding.one_hot(encoded_train, column)
+                encoded_test.loc[self.subsets['test']], _ = \
+                    encoding.one_hot(encoded_test, column, mapping)
+                
+            # Likelihood encoding
+            elif code=='likelihood':
+                encoded_train.loc[self.subsets['train']], _ = \
+                    encoding.likelihood(encoded_train, column)
+                encoded_test.loc[self.subsets['test']], _ = \
+                    encoding.likelihood(encoded_test, column)
+
+            # Label encoding: [1, 2, 3]
+            elif code=='label':
+                encoded_train.loc[self.subsets['train']], mapping = \
+                    encoding.label(encoded_train, column)
+                encoded_test.loc[self.subsets['test']], _ = \
+                    encoding.label(encoded_test, column, mapping)
+
+        self.set_data(encoded_train, 'X_train', processed=True)
+        self.set_data(encoded_test, 'X_test', processed=True)
+
         return self.processed_data
 
     def compute_descriptors(self, processed=False):
