@@ -27,7 +27,7 @@ class Comparator():
         
         # Dictionary of distances between each descriptor of ds1 and ds2
         self.descriptors_dist = dict()
-        self.compare_descriptors()
+        self.compute_descriptors()
         
         # Features/metrics matrix
         self.comparison_matrix = pd.DataFrame(columns=ds1.get_data('X').columns.values)
@@ -63,11 +63,16 @@ class Comparator():
         """
         return ttest_ind(self.ds1.get_data('X'), self.ds2.get_data('X'))
          
-    def compare_descriptors(self, norm='manhattan'):
-        """ Compute distances between descriptors of ds1 and ds2.
+    def compute_descriptors(self, norm='manhattan', processed=False):
+        """ 
+            Compute distances between descriptors of ds1 and ds2.
             
             :param norm: 'l0', 'manhattan', 'euclidean', 'minimum', 'maximum'
         """
+        
+        self.ds1.compute_descriptors(processed=processed)
+        self.ds2.compute_descriptors(processed=processed)
+        
         descriptors1 = self.ds1.descriptors
         descriptors2 = self.ds2.descriptors
         
@@ -78,7 +83,8 @@ class Comparator():
                 self.descriptors_dist[k] = distance(descriptors1[k], descriptors2[k], norm=norm)
             
     def compute_comparison_matrix(self):
-        """ Compute a pandas DataFrame
+        """ 
+            Compute a pandas DataFrame
             Columns: data features
             Rows: univariate comparison metrics (numerical or categorical)
         """

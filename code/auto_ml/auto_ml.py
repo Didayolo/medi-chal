@@ -538,7 +538,7 @@ class AutoML():
         self.descriptors['skewness_min'] = skewness.min()
         self.descriptors['skewness_max'] = skewness.max()
         self.descriptors['skewness_mean'] = skewness.mean()
-        
+    
 
     def show_info(self):
         """ Show AutoML info 
@@ -551,11 +551,12 @@ class AutoML():
 
             print('{}: {}'.format(key, value))
           
-    #def show_feat_type(self):
-    #    """ Display type of each variable (numerical, categorical, etc.)
-    #    """
-    #    display(self.feat_type)
-    #    is_numerical
+    def show_feat_type(self):
+        """ Display type of each variable (numerical, categorical, etc.)
+        """
+        df = pd.DataFrame(columns=self.feat_name)
+        df.at['Type'] = self.feat_type
+        display(df)
 
 
     def show_descriptors(self, processed=False):
@@ -599,8 +600,8 @@ class AutoML():
     
     def show_hierarchical_clustering(self, s='', processed=False):
         print('Hierarchical clustering heatmap of {} set'.format(s))
-        # row_method, column_method, row_metric, column_metric, color_gradient
         data = self.get_data(s, processed)
+        # row_method, column_method, row_metric, column_metric, color_gradient
         heatmap(data, 'average', 'single', 'euclidean', 'euclidean', 'coolwarm')
     
     def show_classes(self, s='', processed=False):

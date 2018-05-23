@@ -592,7 +592,10 @@ def compute_mda(md, norm='manhattan', precision=0.2, threshold=None, area='simps
             resemblance: area under the curve on the right side of the threshold. We want it to be maximal.
           threshold: return the threshold for plot
     """
-    mini, maxi = min(md), max(max(md), 1)
+    mini, maxi = 0, max(max(md), 1) # min(md)
+    
+    if threshold <= 0:
+        print('Warning: threshold must be greater than 0.')
     
     # x axis
     x = np.arange(mini, maxi, precision)
