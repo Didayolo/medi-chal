@@ -28,6 +28,7 @@ def get_types(df):
             dtypes.append('Numerical')
     return dtypes
 
+'''
 def processing(df, normalization='mean', encoding='label', missing='median'):
     """
         Return preprocessed DataFrame
@@ -93,3 +94,4 @@ def processing(df, normalization='mean', encoding='label', missing='median'):
             x = label_encoding(x, column)
 
     return x
+'''

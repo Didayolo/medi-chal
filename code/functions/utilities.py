@@ -393,14 +393,16 @@ def show_pca(X, y, i=1, j=2, verbose=False, **kwargs):
 
     assert(i <= pca.n_components_ and j <= pca.n_components_ and i != j)
 
-    target_names = list(y.columns)
+    if isinstance(y, pd.Series) or isinstance (y, pd.DataFrame):
+        target_names = y.columns.values
+        y = y.values
+    else:
+        target_names = np.unique(y)
 
-    if y.ndim > 1:
+    if y.shape[1] > 1:
         y = np.where(y==1)[1]
 
-    target_num = len(np.unique(y))
-    
-    for label in range(target_num):
+    for label in range(len(target_names)):
         plt.scatter(X[y == label, i-1], X[y == label, j-1], alpha=.8, lw=2, label=target_names[label])
     plt.xlabel('PC '+str(i))
     plt.ylabel('PC '+str(j))
@@ -434,16 +436,18 @@ def show_lda(X, y, verbose=False, **kwargs):
         :param verbose: Display additional information during run
         :param **kwargs: Additional parameters for PCA (see sklearn doc)
     """
-    target_names = list(y.columns)
-    
+    if isinstance(y, pd.Series) or isinstance (y, pd.DataFrame):
+        target_names = y.columns.values
+        y = y.values
+    else:
+        target_names = np.unique(y)
+
     if y.shape[1] > 1:
         y = np.where(y==1)[1]
     
     _, X = compute_lda(X, y, verbose=verbose, **kwargs)
-    
-    target_num = len(np.unique(y))
 
-    for label in range(target_num):
+    for label in range(len(target_names)):
         plt.scatter(X[y == label, 0], X[y == label, 1], alpha=.8, lw=2, label=target_names[label])
 
     plt.legend(loc='best', shadow=False, scatterpoints=1)
@@ -481,14 +485,16 @@ def show_tsne(X, y, i=1, j=2, verbose=False, **kwargs):
     tsne, X = compute_tsne(X, verbose=verbose, **kwargs)
     assert(i <= tsne.embedding_.shape[1] and j <= tsne.embedding_.shape[1] and i != j)
 
-    target_names = list(y.columns)
+    if isinstance(y, pd.Series) or isinstance (y, pd.DataFrame):
+        target_names = y.columns.values
+        y = y.values
+    else:
+        target_names = np.unique(y)
 
     if y.shape[1] > 1:
         y = np.where(y==1)[1]
 
-    target_num = len(np.unique(y))
-
-    for label in range(target_num):
+    for label in range(len(target_names)):
         plt.scatter(X[y == label, i-1], X[y == label, j-1], alpha=.8, lw=2, label=target_names[label])
     plt.legend(loc='best', shadow=False, scatterpoints=1)
     plt.title('T-SNE: TC{} and TC{}'.format(str(i), str(j)))

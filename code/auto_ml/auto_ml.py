@@ -56,7 +56,7 @@ class AutoML():
         self.init_data(test_size=test_size)
         
         # Processed data
-        self.processed_data = self.data.copy() 
+        self.processed_data = None
 
         # autoML info
         self.info = dict()
@@ -86,9 +86,13 @@ class AutoML():
         def write(filepath, X):
             np.savetxt(filepath, X, delimiter=' ', fmt='%s')
 
-        #input_dir += '/' + basename + '_automl'
         if not os.path.isdir(input_dir):
             os.mkdir(input_dir)
+
+        input_dir += '/' + basename + '_automl'
+        if not os.path.isdir(input_dir):
+            os.mkdir(input_dir)
+
 
         path = input_dir + '/' + basename
         write(path + ".data", X.values)
@@ -388,6 +392,8 @@ class AutoML():
         
         # Get processed data
         if processed:
+            if self.processed_data is None:
+                self.process_data()
             data = self.processed_data.loc[instances, columns]
         else:
             # at is a fast accessor
@@ -427,14 +433,10 @@ class AutoML():
                 instances = self.subsets['test']
                 columns = self.data.columns.values
         
-        if self.data.loc[instances, columns].shape == values.shape:
-            if processed:
-                self.processed_data.loc[instances, columns] = values
-            else:
-                self.data.loc[instances, columns] = values
+        if processed:
+            self.processed_data.loc[instances, columns] = values
         else:
-            print('Array passed has shape {} whereas array \
-                   to change has shape {}. \n No changes done.'.format(values.shape, self.data.loc[instances, columns]))
+            self.data.loc[instances, columns] = values
 
     def save(self, out_path, out_name):
         """ Save data in auto_ml file format
