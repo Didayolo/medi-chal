@@ -56,7 +56,7 @@ class AutoML():
         self.init_data(test_size=test_size)
         
         # Processed data
-        self.processed_data = None
+        self.processed_data = self.data.copy()
 
         # autoML info
         self.info = dict()
@@ -392,8 +392,6 @@ class AutoML():
         
         # Get processed data
         if processed:
-            if self.processed_data is None:
-                self.process_data()
             data = self.processed_data.loc[instances, columns]
         else:
             # at is a fast accessor
@@ -528,7 +526,7 @@ class AutoML():
             self.info['task'] = 'Unknown'
         return self.info['task']
 
-    def process_data(self, norm='standard', code='label', missing=['median', 'mean', 'median']):
+    def process_data(self, norm='standard', code='label', missing=['remove', 'remove', 'median']):
         """ 
             Preprocess data.
             - Missing values inputation
@@ -540,6 +538,8 @@ class AutoML():
             :return: Preprocessed data
             :rtype: pd.DataFrame
         """
+        if self.processed_data.equals(self.data):
+            self.processed_data = self.data.copy()
         self.imputation(binary=missing[0], categorical=missing[1], numerical=missing[2])
         self.encoding(code=code)
         self.normalization(norm=norm)
@@ -570,7 +570,7 @@ class AutoML():
             :rtype: pd.DataFrame
 
         """
-        imputed_data = self.get_data('X')
+        imputed_data = self.get_data('X', processed=True)
 
         # For Binary variables
         binary_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Binary']].values
@@ -595,8 +595,8 @@ class AutoML():
             :return: normalized data
             :rtype: pd.DataFrame
         """
-        normalized_train = self.get_data('X_train')
-        normalized_test = self.get_data('X_test')
+        normalized_train = self.get_data('X_train', processed=True)
+        normalized_test = self.get_data('X_test', processed=True)
 
         numerical_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Numerical']].values
 
@@ -621,8 +621,8 @@ class AutoML():
         return self.processed_data
 
     def encoding(self, code='label'):
-        encoded_train = self.get_data('X_train')
-        encoded_test = self.get_data('X_test')
+        encoded_train = self.get_data('X_train', processed=True)
+        encoded_test = self.get_data('X_test', processed=True)
 
         binary_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Binary']].values
         categorical_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Categorical']].values
