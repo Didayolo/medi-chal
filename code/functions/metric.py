@@ -30,9 +30,9 @@ def distance(x, y, axis=None, norm='manhattan'):
     elif norm == 'euclidean' or distance == 'l2':
         return np.linalg.norm(z, ord=2, axis=axis)
     elif norm == 'minimum':
-        return np.linalg.norm(z, ord='-inf', axis=axis)
+        return np.linalg.norm(z, ord=-np.inf, axis=axis)
     elif norm == 'maximum':
-        return np.linalg.norm(z, ord='inf', axis=axis)
+        return np.linalg.norm(z, ord=np.inf, axis=axis)
     elif norm == 'l0':
         return np.linalg.norm(z, ord=0, axis=axis)
     else:
