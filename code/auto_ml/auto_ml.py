@@ -392,6 +392,8 @@ class AutoML():
         
         # Get processed data
         if processed:
+            if self.processed_data.equals(self.data):
+                self.process_data()
             data = self.processed_data.loc[instances, columns]
         else:
             # at is a fast accessor
@@ -538,8 +540,7 @@ class AutoML():
             :return: Preprocessed data
             :rtype: pd.DataFrame
         """
-        if self.processed_data.equals(self.data):
-            self.processed_data = self.data.copy()
+        self.processed_data = self.data.copy() # Re initialization for data != processed_data case
         self.imputation(binary=missing[0], categorical=missing[1], numerical=missing[2])
         self.encoding(code=code)
         self.normalization(norm=norm)
@@ -570,7 +571,7 @@ class AutoML():
             :rtype: pd.DataFrame
 
         """
-        imputed_data = self.get_data('X', processed=True)
+        imputed_data = self.get_data('X', processed=False)
 
         # For Binary variables
         binary_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Binary']].values

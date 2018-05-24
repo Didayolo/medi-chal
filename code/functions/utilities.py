@@ -103,9 +103,7 @@ def heatmap(X, row_method, column_method, row_metric, column_metric,
 
     ### Define variables
     x = np.array(X)
-    column_header = column_header = [
-        'T' + str(dataset) for dataset in list(X)
-    ]  # X.columns.values
+    column_header = column_header = ['T' + str(dataset) for dataset in list(X)]  # X.columns.values
     row_header = ['A' + str(model) for model in list(X.index)]  # X.index
 
     ### Define the color gradient to use based on the provided name
