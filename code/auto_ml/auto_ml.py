@@ -347,7 +347,7 @@ class AutoML():
         return self.info
         
 
-    def get_data(self, s='', processed=False, array=False):
+    def get_data(self, s='', processed=False, array=False, verbose=True):
         """ 
             Return data as a pandas DataFrame.
             You can access different subsets with the 's' argument.
@@ -392,8 +392,8 @@ class AutoML():
         
         # Get processed data
         if processed:
-            if self.processed_data.equals(self.data):
-                self.process_data()
+            if self.processed_data.equals(self.data) and verbose:
+                print('Warning: data has not been processed yet. To process data, please use process_data method.')
             data = self.processed_data.loc[instances, columns]
         else:
             # at is a fast accessor
@@ -535,6 +535,9 @@ class AutoML():
             - +Inf and -Inf replaced by maximum and minimum
             - Encoding ('label', 'one-hot') for categorical variables
             - Normalization ('mean', 'min-max', None)
+            
+            Precision: processings are done first on the train set and then the parameters are used to process the test set.
+            
             :param encoding: 'label', 'one-hot', 'likelihood'
             :param normalization: 'mean', 'min-max' 
             :return: Preprocessed data
@@ -571,7 +574,7 @@ class AutoML():
             :rtype: pd.DataFrame
 
         """
-        imputed_data = self.get_data('X', processed=False)
+        imputed_data = self.get_data('X', processed=True, verbose=False)
 
         # For Binary variables
         binary_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Binary']].values
@@ -596,8 +599,8 @@ class AutoML():
             :return: normalized data
             :rtype: pd.DataFrame
         """
-        normalized_train = self.get_data('X_train', processed=True)
-        normalized_test = self.get_data('X_test', processed=True)
+        normalized_train = self.get_data('X_train', processed=True, verbose=False)
+        normalized_test = self.get_data('X_test', processed=True, verbose=False)
 
         numerical_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Numerical']].values
 
@@ -622,8 +625,8 @@ class AutoML():
         return self.processed_data
 
     def encoding(self, code='label'):
-        encoded_train = self.get_data('X_train', processed=True)
-        encoded_test = self.get_data('X_test', processed=True)
+        encoded_train = self.get_data('X_train', processed=True, verbose=False)
+        encoded_test = self.get_data('X_test', processed=True, verbose=False)
 
         binary_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Binary']].values
         categorical_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Categorical']].values
