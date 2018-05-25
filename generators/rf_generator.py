@@ -22,7 +22,13 @@ class RF_generator():
         
         # AutoML dataset
         self.ds = ds
+        self.ds.process_data() # to optimize
     
+    
+    def process_data(self, **kwargs):
+        """ Apply process_data method on ds
+        """
+        self.ds.process_data(**kwargs)
     
     def get_data(self):
         return self.ds.get_data('X', processed=True)
