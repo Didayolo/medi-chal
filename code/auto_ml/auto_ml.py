@@ -528,7 +528,7 @@ class AutoML():
             self.info['task'] = 'Unknown'
         return self.info['task']
 
-    def process_data(self, norm='standard', code='label', missing=['remove', 'remove', 'median']):
+    def process_data(self, norm='standard', code='label', missing=['remove', 'remove', 'remove']):
         """ 
             Preprocess data.
             - Missing values inputation

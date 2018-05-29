@@ -18,6 +18,9 @@ class Comparator():
         self.ds1 = ds1
         self.ds2 = ds2
         
+        # Processing
+        self.process_data()
+        
         # Check if ds1 and ds2 have the same features number
         assert (ds1.info['feat_num'] == ds2.info['feat_num']), "Datasets don't have the same features number, {} != {}".format(ds1.info['feat_num'], ds2.info['feat_num'])
         
@@ -43,6 +46,12 @@ class Comparator():
         
     def get_ds2(self):
         return self.ds2
+        
+    def process_data(self, **kwargs):
+        """ Apply process_data method on ds1 and ds2
+        """
+        self.ds1.process_data(**kwargs)
+        self.ds2.process_data(**kwargs)
 
     def datasets_distance(self, axis=None, norm='manhattan'):
         """ Compute distance between ds1 and ds2
