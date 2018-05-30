@@ -606,6 +606,7 @@ def compute_mda(md, norm='manhattan', precision=0.2, threshold=None, area='simps
     
     # y axis
     y = []
+  
     for e in x:
         y.append(sum(1 for i in md if i < e))
         
@@ -616,7 +617,8 @@ def compute_mda(md, norm='manhattan', precision=0.2, threshold=None, area='simps
     i = int(np.ceil(threshold / precision))
     
     # Normalization
-    x, y = normalize(x, normalization='min-max'), normalize(y, normalization='min-max')
+    x = normalize(x, normalization='min-max')
+    y= normalize(y,normalization='min-max')
     precision = x[1] - x[0]
     threshold = x[i]
     
@@ -716,3 +718,4 @@ def jensen_shannon(P, Q):
     _Q = Q / norm(Q, ord=1)
     _M = 0.5 * (_P + _Q)
     return 0.5 * (entropy(_P, _M) + entropy(_Q, _M))
+
