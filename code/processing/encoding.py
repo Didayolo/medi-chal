@@ -47,15 +47,16 @@ def likelihood(df, column, mapping=None):
 
     try: 
         pca = PCA()
-        pca = pca.fit_transform(x[numericals].values)
-        pc1 = pca[:, 0]
+        principal_axe = pca.fit(x[numericals].values).components_[0, :]
+        # First principal component.
+        pc1 = (principal_axe * x[numericals]).sum(axis=1)
     except:
         raise OSError('No numerical columns found, cannot apply likelihood encoding.')
 
     categories = x[column].unique()
     mapping_ = dict()
     for i, category in enumerate(categories):
-        mapping_[category] = 1 / np.mean(pc1[x[column]==category])
+        mapping_[category] = np.mean(pc1[x[column]==category])
 
     if mapping:
         if not mapping.keys() == mapping_.keys():

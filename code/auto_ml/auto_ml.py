@@ -554,13 +554,13 @@ class AutoML():
     def _impute(self, data, columns, how='remove'):
         imputed_data = data.copy()
         if how == 'remove':
-             imputed_data = imputation.mean(data, columns)
+            imputed_data = imputation.remove(imputed_data, columns)
         elif how == 'median':
             for column in columns:
-                imputed_data = imputation.median(data, column)
+                imputed_data = imputation.median(imputed_data, column)
         elif how == 'mean':
             for column in columns:
-                imputed_data = imputation.median(data, column)
+                imputed_data = imputation.mean(imputed_data, column)
         else:
             raise OSError('{} imputation is not taken in charge'.format(how))
         return imputed_data
