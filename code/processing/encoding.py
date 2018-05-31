@@ -8,7 +8,7 @@ from utilities import normalize
 
 import bisect
 
-def one_hot(df, column, mapping=None):
+def one_hot(x, column, mapping=None):
     """ 
         Performs one-hot encoding.
         Example:
@@ -22,17 +22,18 @@ def one_hot(df, column, mapping=None):
         :return: Encoded data
         :rtype: pd.Dataframe
     """
-    x = df.copy()
     if mapping:
-        x, mapping_ = label_encoding(x, column, mapping)
+        x, mapping_ = label(x, column, mapping)
     else:
-        x, mapping_ = label_encoding(x, column)
+        x, mapping_ = label(x, column)
 
-    x = pd.concat([x, pd.get_dummies(x[column], prefix=column)],axis=1)
-    x.drop([column],axis=1, inplace=True)
+    # Actual one-hot
+    x = pd.concat([x, pd.get_dummies(x[column], prefix=column)], axis=1)
+    x.drop([column], axis=1, inplace=True)
+    
     return x, mapping_
 
-def likelihood(df, column, mapping=None):
+def likelihood(x, column, mapping=None):
     """ 
         Performs likelihood encoding.
             
@@ -41,7 +42,6 @@ def likelihood(df, column, mapping=None):
         :return: Encoded data
         :rtype: pd.Dataframe
     """
-    x = df.copy()
     # Numerical columns.
     numericals = x.columns[x.dtypes != np.object]
 
@@ -67,7 +67,7 @@ def likelihood(df, column, mapping=None):
     x[column] = x[column].map(mapping_)
     return x, mapping_
 
-def label(df, column, mapping=None):
+def label(x, column, mapping=None):
     """ 
         Performs label encoding.
         Example:
@@ -80,7 +80,6 @@ def label(df, column, mapping=None):
         :return: Encoded data
         :rtype: pd.Dataframe
     """
-    x = df.copy()
     unique = x[column].unique()
     mapping_ = dict(zip(unique, np.arange(len(unique))))
 
@@ -153,3 +152,6 @@ def frequency(columns, probability=False):
         # Every list will follow the same order because the dicts contain the same keys
                     
     return res
+    
+    
+    # Target encoding ?

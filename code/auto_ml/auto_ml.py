@@ -530,10 +530,10 @@ class AutoML():
             self.info['task'] = 'Unknown'
         return self.info['task']
 
-    def process_data(self, norm='standard', code='label', missing=['remove', 'remove', 'remove']):
+    def process_data(self, norm='standard', code='label', missing=['most', 'most', 'median']):
         """ 
             Preprocess data.
-            - Missing values inputation
+            - Missing values inputation ('remove', 'mean', 'median', 'most', None)
             - +Inf and -Inf replaced by maximum and minimum
             - Encoding ('label', 'one-hot') for categorical variables
             - Normalization ('mean', 'min-max', None)
@@ -542,67 +542,92 @@ class AutoML():
             
             :param encoding: 'label', 'one-hot', 'likelihood'
             :param normalization: 'mean', 'min-max' 
+            :param missing: 'remove', 'median', 'mean', None, or a list [binary, categorical, numerical]
             :return: Preprocessed data
             :rtype: pd.DataFrame
         """
         self.processed_data = self.data.copy() # Re initialization for data != processed_data case
-        self.imputation(binary=missing[0], categorical=missing[1], numerical=missing[2])
+        
+        # Encoding
         self.encoding(code=code)
+        
+        # Imputation
+        if isinstance(missing, str) or missing is None:
+            self.imputation(binary=missing, categorical=missing, numerical=missing)
+        else:
+            self.imputation(binary=missing[0], categorical=missing[1], numerical=missing[2])
+        
+        # Normlization
         self.normalization(norm=norm)
         return self.processed_data
 
+
     def _impute(self, data, columns, how='remove'):
+
         imputed_data = data.copy()
+        
         if how == 'remove':
             imputed_data = imputation.remove(imputed_data, columns)
+            
         elif how == 'median':
             for column in columns:
                 imputed_data = imputation.median(imputed_data, column)
+                
         elif how == 'mean':
             for column in columns:
                 imputed_data = imputation.mean(imputed_data, column)
-        else:
+                
+        elif how == 'most':
+            for column in columns:
+                imputed_data = imputation.most(imputed_data, column)
+                
+        elif how is None or how in ['None', 'none']:
+            # No imputation
+            pass
+            
+        else: 
             raise OSError('{} imputation is not taken in charge'.format(how))
+            
         return imputed_data
 
     
-    def imputation(self, binary='remove', categorical='remove', numerical='remove'):
+    def imputation(self, binary='most', categorical='most', numerical='median'):
         """
             Impute missing values.
-            :param binary: 'remove', 'mean', 'median'
-            :param categorical: 'remove', 'mean', 'median'
-            :param numerical: 'remove', 'mean', 'median'
+            :param binary: 'remove', 'mean', 'median', 'most', None
+            :param categorical: 'remove', 'mean', 'median', 'most', None
+            :param numerical: 'remove', 'mean', 'median', 'most', None
             :return: data with imputed values.
             :rtype: pd.DataFrame
 
         """
-        imputed_data = self.get_data('X', processed=True, verbose=False)
+        data = self.get_data('X', processed=True, verbose=False)
 
         # For Binary variables
         binary_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Binary']].values
-        imputed_data = self._impute(imputed_data, binary_columns, how=binary)
+        data = self._impute(data, binary_columns, how=binary)
 
         # For Categorical variables
         categorical_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Categorical']].values        
-        imputed_data = self._impute(imputed_data, categorical_columns, how=categorical)
+        data = self._impute(data, categorical_columns, how=categorical)
 
         # For Numerical variables
         numerical_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Numerical']].values
-        imputed_data = self._impute(imputed_data, numerical_columns, how=numerical)
+        data = self._impute(data, numerical_columns, how=numerical)
 
-        self.set_data(imputed_data, 'X', processed=True)
+        self.set_data(data, 'X', processed=True)
 
         return self.processed_data
 
     def normalization(self, norm='standard'):
         """
             Normalize the data
-            :param norm: 'standard', 'min-max'
+            :param norm: 'standard', 'min-max', None
             :return: normalized data
             :rtype: pd.DataFrame
         """
-        normalized_train = self.get_data('X_train', processed=True, verbose=False)
-        normalized_test = self.get_data('X_test', processed=True, verbose=False)
+        train = self.get_data('X_train', processed=True, verbose=False)
+        test = self.get_data('X_test', processed=True, verbose=False)
 
         numerical_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Numerical']].values
 
@@ -610,62 +635,48 @@ class AutoML():
         for column in numerical_columns:
             # Standard normalization
             if norm == 'standard':
-                normalized_train, (mean, std) = \
-                    normalization.standard(normalized_train, column)
-                normalized_test, _ = \
-                    normalization.standard(normalized_test, column, mean, std)
+                train, (mean, std) = normalization.standard(train, column)
+                test, _ = normalization.standard(test, column, mean, std)
+            
             # Min-Max normalization
             elif norm == 'min-max':
-                normalized_train, (min, max) = \
-                    normalization.min_max(normalized_train, column)
-                normalized_test, _ = \
-                    normalization.min_max(normalized_test, column, min, max)
-
-        self.set_data(normalized_train, 'X_train', processed=True)
-        self.set_data(normalized_test, 'X_test', processed=True)
+                train, (mini, maxi) = normalization.min_max(train, column)
+                test, _ = normalization.min_max(test, column, mini, maxi)
+             
+            #elif norm is None or norm in ['None', 'none']
+        self.set_data(train, 'X_train', processed=True)
+        self.set_data(test, 'X_test', processed=True)
 
         return self.processed_data
 
     def encoding(self, code='label'):
-        encoded_train = self.get_data('X_train', processed=True, verbose=False)
-        encoded_test = self.get_data('X_test', processed=True, verbose=False)
+    
+        train = self.get_data('X_train', processed=True, verbose=False)
+        test = self.get_data('X_test', processed=True, verbose=False)
 
-        binary_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Binary']].values
-        categorical_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Categorical']].values
+        columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if (j=='Binary' or j=='Categorical')]].values
+        #categorical_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Categorical']].values
 
-        # For binary variables
-        for column in binary_columns:
-            encoded_train, mapping = \
-                encoding.label(encoded_train, column)
-            encoded_test, _ = \
-                encoding.label(encoded_test, column, mapping)
-
-        # For categorigal variables
-        for column in categorical_columns:
+        # One-hot encoding: [0, 0, 1]
+        if code=='one-hot':
+            f = encoding.one_hot
             
-            # One-hot encoding: [0, 0, 1]
-            if code=='one-hot':
-                encoded_train.loc[self.subsets['train']], mapping = \
-                    encoding.one_hot(encoded_train, column)
-                encoded_test.loc[self.subsets['test']], _ = \
-                    encoding.one_hot(encoded_test, column, mapping)
+        # Likelihood encoding
+        elif code=='likelihood':
+            f = encoding.likelihood
+
+        # Label encoding: [1, 2, 3]
+        elif code=='label':
+            f = encoding.label
+
+        # For binary and categorigal variables
+        for column in columns:
                 
-            # Likelihood encoding
-            elif code=='likelihood':
-                encoded_train.loc[self.subsets['train']], _ = \
-                    encoding.likelihood(encoded_train, column)
-                encoded_test.loc[self.subsets['test']], _ = \
-                    encoding.likelihood(encoded_test, column)
+            train, mapping = f(train, column)
+            test, _ = f(test, column, mapping)
 
-            # Label encoding: [1, 2, 3]
-            elif code=='label':
-                encoded_train.loc[self.subsets['train']], mapping = \
-                    encoding.label(encoded_train, column)
-                encoded_test.loc[self.subsets['test']], _ = \
-                    encoding.label(encoded_test, column, mapping)
-
-        self.set_data(encoded_train, 'X_train', processed=True)
-        self.set_data(encoded_test, 'X_test', processed=True)
+        self.set_data(train, 'X_train', processed=True)
+        self.set_data(test, 'X_test', processed=True)
 
         return self.processed_data
 
