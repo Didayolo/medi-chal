@@ -12,5 +12,5 @@ def median(df, column):
 
 def remove(df, columns):
 	x = df.copy()
-	x = x.dropna(axis=0, subset=[columns])
+	x = x.dropna(axis=0, subset=columns)
 	return x
