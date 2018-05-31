@@ -228,15 +228,17 @@ class AutoML():
         if 'shuffle' in kwargs:
             shuffle = kwargs.get('shuffle')
         if shuffle:
-            random.shuffle(index)
+            #random.shuffle(index)
+            # We use sample to not modify or copy index
+            shuffled_index = random.sample(list(index), len(index))
         
         test_size = 0.2
         if 'test_size' in kwargs:
             test_size = kwargs.get('test_size')
         split = int(test_size * len(index))
         
-        self.subsets['train'] = index[split:]
-        self.subsets['test'] = index[:split]
+        self.subsets['train'] = shuffled_index[split:]
+        self.subsets['test'] = shuffled_index[:split]
 
 
     def load_data(self, filepath):
