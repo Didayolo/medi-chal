@@ -499,60 +499,6 @@ def show_tsne(X, y, i=1, j=2, verbose=False, **kwargs):
     plt.show()
   
     
-def to_frequency(columns, probability=False):
-    """ Pandas series to frequency/probability distribution.
-        If there are several series, the outputs will have the same format.
-        Example:
-          C1: ['b', 'a', 'a', 'b', 'b']
-          C2: ['b', 'b', 'b', 'c', 'b']
-          
-          f1: ['a': 2, 'b'; 3, 'c': 0]
-          f2: ['a': 0, 'b'; 4, 'c': 1]
-          
-          Output: [[2, 3, 0], [0, 4, 1]] (with probability = False)
-          
-        :param probability: True for probablities, False for frequencies.
-        :return: Frequency/probability distribution.
-        :rtype: list
-    """ # TODO error if several columns have the same header
-
-    # If there is only one column, just return frequencies
-    if not isinstance(columns[0], (list, np.ndarray, pd.Series)):
-        return columns.value_counts(normalize=probability).values
-    
-    frequencies = []
-    
-    # Compute frequencies for each column
-    for column in columns:
-        f = dict()
-        for e in column:
-            if e in f:
-                f[e] += 1
-            else:
-                f[e] = 1
-        frequencies.append(f)
-        
-    # Add keys from other columns in every dictionaries with a frequency of 0
-    # We want the same format
-    for i, f in enumerate(frequencies):
-        for k in f.keys():
-            for other_f in frequencies[:i]+frequencies[i+1:]:
-                if k not in other_f:
-                    other_f[k] = 0
-           
-    # Convert to frequency/probability distribution
-    res = []         
-    for f in frequencies:
-        l = list(f.values())
-        if probability:
-            # normalize between 0 and 1 with a sum of 1
-            l = normalize(l)
-        # Convert dict into a list of values
-        res.append(l)
-        # Every list will follow the same order because the dicts contain the same keys
-                    
-    return res
-    
 def minimum_distance(A, B, norm='manhattan'):
     """ Compute for each element of A its distance from its nearest neighbor from B (and reciprocally)
 
@@ -686,7 +632,7 @@ def kolmogorov_smirnov(col1, col2):
         :return: Result of Kolmogorov-Smirnov test
     """
     res = ks_2samp(col1, col2)
-    return res[0].round(5), res[1].round(5)
+    return res[0].round(3), res[1].round(3)
     
 def kullback_leibler(freq1, freq2):
     """ Performs KL divergence on probability distributions
@@ -696,7 +642,7 @@ def kullback_leibler(freq1, freq2):
         :param freq2: Frequency distribution of the second variable.
         :return: Kullback-Leibler divergence
     """    
-    return entropy(freq1, qk=freq2).round(5), entropy(freq2, qk=freq1).round(5)
+    return entropy(freq1, qk=freq2).round(3), entropy(freq2, qk=freq1).round(3)
     
 def mutual_information(freq1, freq2):
     """ Performs the Kullback-Leibler divergence of the joint distribution with the product distribution of the marginals.
@@ -705,7 +651,7 @@ def mutual_information(freq1, freq2):
         :param freq2: Frequency/probability distribution of the second variable.
         :return: The score
     """
-    return mutual_info_score(freq1, freq2).round(5)
+    return mutual_info_score(freq1, freq2).round(3)
     
 def jensen_shannon(P, Q):
     """ Performs the Jensen-Shannon divergence on probability distributions.
@@ -717,5 +663,5 @@ def jensen_shannon(P, Q):
     _P = P / norm(P, ord=1)
     _Q = Q / norm(Q, ord=1)
     _M = 0.5 * (_P + _Q)
-    return 0.5 * (entropy(_P, _M) + entropy(_Q, _M))
+    return (0.5 * (entropy(_P, _M) + entropy(_Q, _M))).round(3)
 

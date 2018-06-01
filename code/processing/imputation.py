@@ -12,5 +12,13 @@ def median(df, column):
 
 def remove(df, columns):
 	x = df.copy()
-	x = x.dropna(axis=0, subset=[columns])
+	x = x.dropna(axis=0, subset=columns)
 	return x
+
+def most(df, column):
+    """ Replace by the most frequent value
+    """
+    x = df.copy()
+    most_frequent_value = x[column].value_counts().idxmax()
+    x[column] = x[column].fillna(most_frequent_value)
+    return x

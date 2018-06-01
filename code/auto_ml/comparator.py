@@ -5,6 +5,7 @@ from IPython.display import display
 from metric import *
 from sklearn.linear_model import LogisticRegression
 import random
+from encoding import frequency
 
 class Comparator():
     def __init__(self, ds1, ds2):
@@ -110,8 +111,8 @@ class Comparator():
             
             # Categorical, other
             else:
-                f1 = to_frequency(data1[column])
-                f2 = to_frequency(data2[column])
+                f1 = frequency(data1[column])
+                f2 = frequency(data2[column])
                 
                 self.comparison_matrix.at['Kullback-Leibler divergence', column] = kullback_leibler(f1, f2)
                 self.comparison_matrix.at['Mutual information', column] = mutual_information(f1, f2)
