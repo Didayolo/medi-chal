@@ -8,10 +8,10 @@ def standard(df, column, mean=None, std=None):
 	x[column] = (x[column] - mean) / std
 	return x, (mean, std)
 
-def min_max(df, column, min=None, max=None):
+def min_max(df, column, mini=None, maxi=None):
 	x = df.copy()
-	if not min and not max:
-		min = x[column].min()
-		max = x[column].max()
-	x[column] = (x[column] - min) / (max - min)
-	return x, (min, max)
+	if not mini and not maxi:
+		mini = x[column].min()
+		maxi = x[column].max()
+	x[column] = (x[column] - mini) / (maxi - mini)
+	return x, (mini, maxi)
