@@ -4,6 +4,7 @@ from scipy.stats import ttest_ind
 from IPython.display import display
 from metric import *
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report
 import random
 from encoding import frequency
 
@@ -120,11 +121,11 @@ class Comparator():
                 #self.comparison_matrix.at['Chi-square', column] = chi_square(f1, f2)
                 
     def classify(self, clf=LogisticRegression()):
-        """ Return the score (mean accuracy) of a classifier train on the data labeled with 0 or 1 according to their original dataset.
+        """ Return the scores (classification report: precision, recall, f1-score) of a classifier train on the data labeled with 0 or 1 according to their original dataset.
             
             :param clf: the classifier. It has to have fit(X,y) and score(X,y) methods.
-            :return: Classification score.
-            :rtype: float
+            :return: Classification report (precision, recall, f1-score).
+            :rtype: str
         """
         
         ds1_train = self.ds1.get_data('X_train', processed=True)
@@ -151,18 +152,21 @@ class Comparator():
         clf.fit(X_train, y_train)
         
         # Score
-        return clf.score(X_test, y_test)
+        #clf.score(X_test, y_test)
+        target_names = ['Dataset 1', 'Dataset 2']
+        return classification_report(clf.predict(X_test), y_test, target_names=target_names)
         
     def show_classifier_score(self, clf=LogisticRegression()):
-        """ Display the score (mean accuracy) of a classifier train on the data labeled with 0 or 1 according to their original dataset.
+        """ Display the scores (classification report: precision, recall, f1-score) of a classifier train on the data labeled with 0 or 1 according to their original dataset.
             (return of 'classify' method)
             
             :param clf: the classifier. It has to have fit(X,y) and score(X,y) methods.
         """
-        score = self.classify(clf=clf).round(5)
+        report = self.classify(clf=clf) #.round(5)
+        
         print(clf)
         print('\n')
-        printmd('** Score: **' + str(score))
+        print(report)
         print('\n')
           
     def show_descriptors(self):

@@ -2,6 +2,8 @@
 import numpy as np
 import os
 from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report
 import pandas as pd
 from utilities import *
 import processing
@@ -679,6 +681,59 @@ class AutoML():
         self.set_data(test, 'X_test', processed=True)
 
         return self.processed_data
+
+    
+    def classify(self, clf=LogisticRegression(), test_size=0.2):
+        """ Return the scores (classification report: precision, recall, f1-score) of a classifier train on the data labeled with 0 or 1 according to their original subset: train set or test set.
+            
+            :param clf: the classifier. It has to have fit(X,y) and score(X,y) methods.
+            :param test_size: proportion of test size during train/validation split
+            :return: Classification report (precision, recall, f1-score).
+            :rtype: str
+        """
+        # Dataset 1 is the train set
+        ds1 = self.get_data('X_train', processed=True)
+        # Dataset 2 is the test set
+        ds2 = self.get_data('X_test', processed=True)
+        
+        # We re-split each set
+        ds1_train, ds1_valid = train_test_split(ds1, test_size=test_size)
+        ds2_train, ds2_valid = train_test_split(ds2, test_size=test_size)
+    
+        # Train set
+        X1_train, X2_train = list(ds1_train.values), list(ds2_train.values)
+        X_train = X1_train + X2_train
+        y_train = [0] * len(X1_train) + [1] * len(X2_train)
+        
+        # Shuffle
+        combined = list(zip(X_train, y_train))
+        random.shuffle(combined)
+        X_train[:], y_train[:] = zip(*combined)
+        
+        # Test set
+        X1_test, X2_test = list(ds1_valid.values), list(ds2_valid.values)
+        X_test = X1_test + X2_test
+        y_test = [0] * len(X1_test) + [1] * len(X2_test)
+        
+        # Training
+        clf.fit(X_train, y_train)
+        
+        target_names = ['Train set', 'Test set']
+        return classification_report(clf.predict(X_test), y_test, target_names=target_names)
+        
+    def show_classifier_score(self, clf=LogisticRegression()):
+        """ Display the scores (classification report: precision, recall, f1-score) of a classifier train on the data labeled with 0 or 1 according to their original dataset.
+            (return of 'classify' method)
+            
+            :param clf: the classifier. It has to have fit(X,y) and score(X,y) methods.
+        """
+        report = self.classify(clf=clf) #.round(5)
+        
+        print(clf)
+        print('\n')
+        print(report)
+        print('\n')    
+
 
     def compute_descriptors(self, processed=False):
         """ 
