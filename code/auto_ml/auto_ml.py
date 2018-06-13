@@ -46,6 +46,9 @@ class AutoML():
         #   subsets['train'] = [0, 1, 3, 4] (index of train rows)
         #   subsets['y'] = ['class'] (headers of y columns)
         self.subsets = dict()
+        # Subsets for processed data
+        # Indeed, processings may modify dimensionality, etc.
+        self.processed_subsets = dict() 
 
         # Column names
         self.feat_name = self.load_name(
@@ -218,6 +221,9 @@ class AutoML():
             
         else:
             raise OSError('No .data files in {}.'.format(self.input_dir))
+            
+        # Processed version
+        self.processed_subsets = self.subsets.copy()
 
 
     def train_test_split(self, **kwargs):
@@ -367,42 +373,46 @@ class AutoML():
             :param array: If True, the return type is ndarray instead of pandas DataFrame.
             :return: The data.
             :rtype: pd.DataFrame
-        """
+        """        
+        if processed:
+            ss = self.processed_subsets
+            df = self.processed_data
+        else:
+            ss = self.subsets
+            df = self.data
         
         if s in ['', 'all', 'data']:
-            instances = self.data.index.values
-            columns = self.data.columns.values
+            instances = df.index.values
+            columns = df.columns.values
         
         # We split the data using self.subsets
         # Thanks to this, processings are done only once
         if '_' in s: # For example 'X_train' 
             c, i = s.split('_') # c = 'X', i = 'train'
-            instances = self.subsets[i]
-            columns = self.subsets[c]
+            instances = ss[i]
+            columns = ss[c]
         
         else:
             if s == 'X':
-                instances = self.data.index.values
-                columns = self.subsets['X']
+                instances = df.index.values
+                columns = ss['X']
             elif s == 'y':
-                instances = self.data.index.values
-                columns = self.subsets['y']
+                instances = df.index.values
+                columns = ss['y']
             elif s == 'train':
-                instances = self.subsets['train']
-                columns = self.data.columns.values
+                instances = ss['train']
+                columns = df.columns.values
             elif s == 'test':
-                instances = self.subsets['test']
-                columns = self.data.columns.values
+                instances = ss['test']
+                columns = df.columns.values
         
-        # Get processed data
-        if processed:
-            if self.processed_data.equals(self.data) and verbose:
-                print('Warning: data has not been processed yet. To process data, please use process_data method.')
-            data = self.processed_data.loc[instances, columns]
-        else:
-            # at is a fast accessor
-            # loc is slower but can manage subsets
-            data = self.data.loc[instances, columns]
+        # Get processed data WARNING
+        if processed and self.processed_data.equals(self.data) and verbose:
+            print('Warning: data has not been processed yet. To process data, please use process_data method.')
+
+        # at is a fast accessor
+        # loc is slower but can manage subsets
+        data = df.loc[instances, columns]
         
         # Get data as ndarray
         if array:
@@ -412,35 +422,44 @@ class AutoML():
         
         
     def set_data(self, values, s='', processed=False):
+        """
+            /!\ UNUSABLE with encoding that changes dimensionality /!\
+            Set values to the subset s
+        """
+        # Not sure if useful
+        if processed:
+            ss = self.processed_subsets
+            df = self.processed_data
+        else:
+            ss = self.subsets
+            df = self.data
+        
         if s in ['', 'all', 'data']:
-            instances = self.data.index.values
-            columns = self.data.columns.values
+            instances = df.index.values
+            columns = df.columns.values
         
         # We split the data using self.subsets
         # Thanks to this, processings are done only once
         if '_' in s: # For example 'X_train' 
             c, i = s.split('_') # c = 'X', i = 'train'
-            instances = self.subsets[i]
-            columns = self.subsets[c]
+            instances = ss[i]
+            columns = ss[c]
         
         else:
             if s == 'X':
-                instances = self.data.index.values
-                columns = self.subsets['X']
+                instances = df.index.values
+                columns = ss['X']
             elif s == 'y':
-                instances = self.data.index.values
-                columns = self.subsets['y']
+                instances = df.index.values
+                columns = ss['y']
             elif s == 'train':
-                instances = self.subsets['train']
-                columns = self.data.columns.values
+                instances = ss['train']
+                columns = df.columns.values
             elif s == 'test':
-                instances = self.subsets['test']
-                columns = self.data.columns.values
+                instances = ss['test']
+                columns = df.columns.values
         
-        if processed:
-            self.processed_data.loc[instances, columns] = values
-        else:
-            self.data.loc[instances, columns] = values
+        df.loc[instances, columns] = values
 
     def save(self, out_path, out_name):
         """ Save data in auto_ml file format
@@ -548,7 +567,9 @@ class AutoML():
             :return: Preprocessed data
             :rtype: pd.DataFrame
         """
-        self.processed_data = self.data.copy() # Re initialization for data != processed_data case
+        # Re initialization for data != processed_data case
+        self.processed_data = self.data.copy() 
+        self.processed_subsets = self.subsets.copy()
         
         # Encoding
         self.encoding(code=code)
@@ -651,17 +672,32 @@ class AutoML():
 
         return self.processed_data
 
-    def encoding(self, code='label'):
-    
+    def encoding(self, code='label', target=None):
+        """ 
+            Encode the data
+            :param code: 'label', 'one-hot', 'target', 'likelihood', 'count'
+            :param target: target column for target encoding (the column, not its name)
+        """
+        # TODO clean code
         train = self.get_data('X_train', processed=True, verbose=False)
         test = self.get_data('X_test', processed=True, verbose=False)
 
         columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if (j=='Binary' or j=='Categorical')]].values
-        #categorical_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Categorical']].values
 
         # One-hot encoding: [0, 0, 1]
-        if code=='one-hot':
+        if code in ['one-hot', 'onehot', 'one_hot']:
             f = encoding.one_hot
+            data = self.get_data('X', processed=True, verbose=False)
+            for column in columns:
+                data = f(data, column)
+                
+            self.processed_data = pd.concat([data, self.get_data('y', processed=True, verbose=False)], axis=1)
+            
+            # WARNING TODO, one-hot changes variable names and dimensionality so...
+            # SUBSETS need to be modified with columns !
+            # Can't do this:
+            self.processed_subsets['X'] = data.columns.values
+            # Because it'll be only good for processed_data
             
         # Likelihood encoding
         elif code=='likelihood':
@@ -670,15 +706,35 @@ class AutoML():
         # Label encoding: [1, 2, 3]
         elif code=='label':
             f = encoding.label
+            
+        elif code=='target':
+            f = encoding.target
+            if target is None:
+                target = self.get_data('y_train', verbose=False)
+            
+            for column in columns:    
+                train, mapping = f(train, column, target)
+                test, _ = f(test, column, target, mapping=mapping)
+                self.processed_subsets['X'] = self.processed_data.columns.values
+            
+        elif code=='count':
+            f = encoding.count
+            
+        else:
+            raise OSError('{} encoding is not taken in charge'.format(code))
 
-        # For binary and categorigal variables
-        for column in columns:
-                
-            train, mapping = f(train, column)
-            test, _ = f(test, column, mapping)
+        if code != 'target' and code != 'one-hot':
+            # For binary and categorigal variables
+            for column in columns:
+                    
+                train, mapping = f(train, column)
+                test, _ = f(test, column, mapping)
 
-        self.set_data(train, 'X_train', processed=True)
-        self.set_data(test, 'X_test', processed=True)
+        # to remove
+        if code != 'one-hot':
+            self.set_data(train, 'X_train', processed=True)
+            self.set_data(test, 'X_test', processed=True)
+            # Better if data were modify directly since we do copy...
 
         return self.processed_data
 
