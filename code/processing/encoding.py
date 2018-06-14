@@ -8,7 +8,7 @@ from utilities import normalize
 
 import bisect
 
-def label(x, column, mapping=None):
+def label(x, column):
     """ 
         Performs label encoding.
         Example:
@@ -21,22 +21,9 @@ def label(x, column, mapping=None):
         :return: Encoded data
         :rtype: pd.Dataframe
     """
-    # DOES LABEL ENCODING REALLY NEED MAPPING ???
-    unique = x[column].unique()
-    mapping_ = dict(zip(unique, np.arange(len(unique))))
-
-    if mapping is not None:
-        if not mapping.keys() == mapping_.keys(): # maybe useless ?
-            diff = mapping_.keys() - mapping.keys()
-            for category in diff:
-                mapping_[category] = len(unique) - len(diff)
-            for category in mapping.keys():
-                mapping_[category] = mapping[category]
-
-    #x = x.replace({column:mapping_})
-    x[column] = x[column].map(mapping_)
-    return x, mapping_
+    x[column] = x[column].astype('category').cat.codes
     
+    return x
 
 def one_hot(x, column):
     """ 
@@ -55,7 +42,7 @@ def one_hot(x, column):
     x = pd.concat([x, pd.get_dummies(x[column], prefix=column)], axis=1)
     x.drop([column], axis=1, inplace=True)
     
-    return x #, mapping_
+    return x
 
 def likelihood(x, column, mapping=None):
     """ 
@@ -68,23 +55,25 @@ def likelihood(x, column, mapping=None):
     """
     # Numerical columns.
     numericals = x.columns[x.dtypes != np.object]
-
-    try: 
-        pca = PCA()
-        principal_axe = pca.fit(x[numericals].values).components_[0, :]
-        # First principal component.
-        pc1 = (principal_axe * x[numericals]).sum(axis=1)
-    except:
-        raise OSError('No numerical columns found, cannot apply likelihood encoding.')
-
     categories = x[column].unique()
     mapping_ = dict()
-    for i, category in enumerate(categories):
-        mapping_[category] = np.mean(pc1[x[column]==category])
+        
+    if mapping is None:
+        try: 
+            # NOT OPTIMIZED: PCA will be computed for every variable encoding
+            pca = PCA()
+            principal_axe = pca.fit(x[numericals].values).components_[0, :]
+            # First principal component.
+            pc1 = (principal_axe * x[numericals]).sum(axis=1)
+        except:
+            raise OSError('No numerical columns found, cannot apply likelihood encoding.')
+        
+        for i, category in enumerate(categories):
+            mapping_[category] = np.mean(pc1[x[column]==category])
 
-    if mapping is not None:
-        if not mapping.keys() == mapping_.keys():
-            for category in mapping_.keys() - mapping.keys():
+    else:
+        for category in categories:
+            if category not in mapping:
                 mapping_[category] = 0
 
     #x = x.replace({column:mapping_})
@@ -97,19 +86,20 @@ def count(x, column, mapping=None):
         Probability ...
     """
     mapping_ = dict()
-    for e in column:
-        if e in mapping_:
-            mapping_[e] += 1
-        else:
-            mapping_[e] = 1
+    categories = x[column].unique()
+    
+    if mapping is None:
+        for e in column:
+            if e in mapping_:
+                mapping_[e] += 1
+            else:
+                mapping_[e] = 1
                 
-    if mapping is not None:
-        if not mapping.keys() == mapping_.keys(): # maybe useless ?
-            diff = mapping_.keys() - mapping.keys()
-            for category in diff:
-                mapping_[category] = len(unique) - len(diff)
-            for category in mapping.keys():
-                mapping_[category] = mapping[category]
+    else:
+        mapping_ = mapping
+        for category in categories:
+            if category not in mapping:
+                mapping_[category] = 0 # TODO
     
     x[column] = x[column].map(mapping_)
     return x, mapping_
@@ -125,12 +115,14 @@ def target(x, column, target, mapping=None):
     """
     categories = x[column].unique()
     mapping_ = dict()
-    for i, category in enumerate(categories):
-        mapping_[category] = np.mean(target[x[column]==category]) # TODO
 
-    if mapping is not None:
-        if not mapping.keys() == mapping_.keys():
-            for category in mapping_.keys() - mapping.keys():
+    if mapping is None:
+        for i, category in enumerate(categories):
+            mapping_[category] = np.mean(target[x[column]==category]) # TODO
+
+    else:
+        for category in categories:
+            if category not in mapping:
                 mapping_[category] = 0
 
     x[column] = x[column].map(mapping_)
@@ -193,5 +185,3 @@ def frequency(columns, probability=False):
                     
     return res
     
-    
-    # Target encoding ?

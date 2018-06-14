@@ -423,10 +423,11 @@ class AutoML():
         
     def set_data(self, values, s='', processed=False):
         """
-            /!\ UNUSABLE with encoding that changes dimensionality /!\
             Set values to the subset s
+            
+            :param s: Wanted set (X, y_train, all, etc.)
+            :param processed: If True, the values are set to processed_data.
         """
-        # Not sure if useful
         if processed:
             ss = self.processed_subsets
             df = self.processed_data
@@ -438,8 +439,6 @@ class AutoML():
             instances = df.index.values
             columns = df.columns.values
         
-        # We split the data using self.subsets
-        # Thanks to this, processings are done only once
         if '_' in s: # For example 'X_train' 
             c, i = s.split('_') # c = 'X', i = 'train'
             instances = ss[i]
@@ -458,7 +457,7 @@ class AutoML():
             elif s == 'test':
                 instances = ss['test']
                 columns = df.columns.values
-        
+        # Set
         df.loc[instances, columns] = values
 
     def save(self, out_path, out_name):
@@ -679,62 +678,74 @@ class AutoML():
             :param target: target column for target encoding (the column, not its name)
         """
         # TODO clean code
-        train = self.get_data('X_train', processed=True, verbose=False)
-        test = self.get_data('X_test', processed=True, verbose=False)
+        train = self.get_data('train', processed=True, verbose=False)
+        test = self.get_data('test', processed=True, verbose=False)
 
-        columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if (j=='Binary' or j=='Categorical')]].values
+        # Variables
+        columns_x = self.get_data('X').columns[[i for i, j in enumerate(self.feat_type) if (j=='Binary' or j=='Categorical')]].values
+        ctype = processing.get_types(self.get_data('y'))
+        columns_y = self.get_data('y').columns[[i for i, j in enumerate(ctype) if (j=='Binary' or j=='Categorical')]].values
+        columns= np.concatenate((columns_x, columns_y), axis=0)
 
         # One-hot encoding: [0, 0, 1]
+        # DIMENSIONALITY CHANGE CASE
         if code in ['one-hot', 'onehot', 'one_hot']:
-            f = encoding.one_hot
             data = self.get_data('X', processed=True, verbose=False)
-            for column in columns:
-                data = f(data, column)
+            for column in columns_x:
+                data = encoding.one_hot(data, column)
                 
-            self.processed_data = pd.concat([data, self.get_data('y', processed=True, verbose=False)], axis=1)
+            if 'y' in self.subsets:
+                data_y = self.get_data('y', processed=True, verbose=False)
+                for column in columns_y:
+                    data_y = encoding.one_hot(data_y, column)
             
-            # WARNING TODO, one-hot changes variable names and dimensionality so...
+                self.processed_data = pd.concat([data, data_y], axis=1)
+                self.processed_subsets['y'] = data_y.columns.values
+            
+            else:    
+                self.processed_data = data
+            # WARNING, one-hot changes variable names and dimensionality so...
             # SUBSETS need to be modified with columns !
-            # Can't do this:
             self.processed_subsets['X'] = data.columns.values
-            # Because it'll be only good for processed_data
+            
+        # Label encoding: [1, 2, 3]
+        # NO MAPPING CASE
+        elif code=='label':
+            data = self.get_data(processed=True, verbose=False)
+            for column in columns:
+                self.processed_data = encoding.label(data, column)
+            
+        # Target encoding
+        # SPECIFIC PARAMETER CASE
+        elif code=='target':
+            if target is None:
+                target = self.get_data('y_train', verbose=False).as_matrix() #.iloc[0]
+                # warning if no y ? Or another column ?
+            for column in columns:    
+                train, mapping = encoding.target(train, column, target)
+                test, _ = encoding.target(test, column, target, mapping=mapping)
             
         # Likelihood encoding
         elif code=='likelihood':
             f = encoding.likelihood
-
-        # Label encoding: [1, 2, 3]
-        elif code=='label':
-            f = encoding.label
-            
-        elif code=='target':
-            f = encoding.target
-            if target is None:
-                target = self.get_data('y_train', verbose=False)
-            
-            for column in columns:    
-                train, mapping = f(train, column, target)
-                test, _ = f(test, column, target, mapping=mapping)
-                self.processed_subsets['X'] = self.processed_data.columns.values
-            
-        elif code=='count':
+               
+        # Frequency encoding
+        elif code in ['count', 'frequency']:
             f = encoding.count
             
         else:
             raise OSError('{} encoding is not taken in charge'.format(code))
 
-        if code != 'target' and code != 'one-hot':
+        if code not in ['one-hot', 'onehot', 'one_hot', 'target', 'label']:
             # For binary and categorigal variables
             for column in columns:
-                    
                 train, mapping = f(train, column)
                 test, _ = f(test, column, mapping)
 
-        # to remove
-        if code != 'one-hot':
-            self.set_data(train, 'X_train', processed=True)
-            self.set_data(test, 'X_test', processed=True)
-            # Better if data were modify directly since we do copy...
+        if code not in ['one-hot', 'one_hot', 'onehot', 'label']:
+            self.set_data(train, 'train', processed=True)
+            self.set_data(test, 'test', processed=True)
+            # Not clean...
 
         return self.processed_data
 
