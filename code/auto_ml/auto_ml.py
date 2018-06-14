@@ -570,14 +570,14 @@ class AutoML():
         self.processed_data = self.data.copy() 
         self.processed_subsets = self.subsets.copy()
         
-        # Encoding
-        self.encoding(code=code)
-        
         # Imputation
         if isinstance(missing, str) or missing is None:
             self.imputation(binary=missing, categorical=missing, numerical=missing)
         else:
             self.imputation(binary=missing[0], categorical=missing[1], numerical=missing[2])
+        
+        # Encoding
+        self.encoding(code=code)
         
         # Normlization
         self.normalization(norm=norm)
@@ -616,14 +616,14 @@ class AutoML():
     def imputation(self, binary='most', categorical='most', numerical='median'):
         """
             Impute missing values.
-            :param binary: 'remove', 'mean', 'median', 'most', None
-            :param categorical: 'remove', 'mean', 'median', 'most', None
+            :param binary: 'remove', 'most', None
+            :param categorical: 'remove', 'most', None
             :param numerical: 'remove', 'mean', 'median', 'most', None
             :return: data with imputed values.
             :rtype: pd.DataFrame
 
         """
-        data = self.get_data('X', processed=True, verbose=False)
+        data = self.get_data(processed=True, verbose=False)
 
         # For Binary variables
         binary_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Binary']].values
@@ -637,7 +637,7 @@ class AutoML():
         numerical_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Numerical']].values
         data = self._impute(data, numerical_columns, how=numerical)
 
-        self.set_data(data, 'X', processed=True)
+        self.set_data(data, processed=True)
 
         return self.processed_data
 
@@ -657,13 +657,13 @@ class AutoML():
         for column in numerical_columns:
             # Standard normalization
             if norm == 'standard':
-                train, (mean, std) = normalization.standard(train, column)
-                test, _ = normalization.standard(test, column, mean, std)
+                train, (mean, std) = normalization.standard(train, column, return_param=True)
+                test = normalization.standard(test, column, mean, std)
             
             # Min-Max normalization
             elif norm == 'min-max':
-                train, (mini, maxi) = normalization.min_max(train, column)
-                test, _ = normalization.min_max(test, column, mini, maxi)
+                train, (mini, maxi) = normalization.min_max(train, column, return_param=True)
+                test = normalization.min_max(test, column, mini, maxi)
              
             #elif norm is None or norm in ['None', 'none']
         self.set_data(train, 'X_train', processed=True)
@@ -722,8 +722,8 @@ class AutoML():
                 target = self.get_data('y_train', verbose=False).as_matrix() #.iloc[0]
                 # warning if no y ? Or another column ?
             for column in columns:    
-                train, mapping = encoding.target(train, column, target)
-                test, _ = encoding.target(test, column, target, mapping=mapping)
+                train, mapping = encoding.target(train, column, target, return_param=True)
+                test = encoding.target(test, column, target, mapping=mapping)
             
         # Likelihood encoding
         elif code=='likelihood':
@@ -739,8 +739,8 @@ class AutoML():
         if code not in ['one-hot', 'onehot', 'one_hot', 'target', 'label']:
             # For binary and categorigal variables
             for column in columns:
-                train, mapping = f(train, column)
-                test, _ = f(test, column, mapping)
+                train, mapping = f(train, column, return_param=True)
+                test = f(test, column, mapping)
 
         if code not in ['one-hot', 'one_hot', 'onehot', 'label']:
             self.set_data(train, 'train', processed=True)

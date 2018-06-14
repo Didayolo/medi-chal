@@ -19,7 +19,7 @@ def label(x, column):
         :param df: Data
         :param column: Column to encode
         :return: Encoded data
-        :rtype: pd.Dataframe
+        :rtype: pd.DataFrame
     """
     x[column] = x[column].astype('category').cat.codes
     
@@ -37,21 +37,23 @@ def one_hot(x, column):
         :param df: Data
         :param column: Column to encode
         :return: Encoded data
-        :rtype: pd.Dataframe
+        :rtype: pd.DataFrame
     """
     x = pd.concat([x, pd.get_dummies(x[column], prefix=column)], axis=1)
     x.drop([column], axis=1, inplace=True)
     
     return x
 
-def likelihood(x, column, mapping=None):
+def likelihood(x, column, mapping=None, return_param=False):
     """ 
         Performs likelihood encoding.
             
         :param df: Data
         :param column: Column to encode
+        :param mapping: Dictionary {category : value}
+        :param return_param: If True, the mapping is returned
         :return: Encoded data
-        :rtype: pd.Dataframe
+        :rtype: pd.DataFrame
     """
     # Numerical columns.
     numericals = x.columns[x.dtypes != np.object]
@@ -78,12 +80,23 @@ def likelihood(x, column, mapping=None):
 
     #x = x.replace({column:mapping_})
     x[column] = x[column].map(mapping_)
-    return x, mapping_
+    
+    if return_param:
+        return x, mapping_
+    return x
 
 
-def count(x, column, mapping=None):
-    """ Frequency encoding
-        Probability ...
+def count(x, column, mapping=None, return_param=False):
+    """ Performs frequency encoding.
+        Categories are replaced by their number of occurence.
+        Soon: possibility of probability instead of count (normalization)
+        
+        :param df: Data
+        :param column: Column to encode
+        :param mapping: Dictionary {category : value}
+        :param return_param: If True, the mapping is returned
+        :return: Encoded data
+        :rtype: pd.DataFrame
     """
     mapping_ = dict()
     categories = x[column].unique()
@@ -102,16 +115,21 @@ def count(x, column, mapping=None):
                 mapping_[category] = 0 # TODO
     
     x[column] = x[column].map(mapping_)
-    return x, mapping_
     
-def target(x, column, target, mapping=None):
+    if return_param:
+        return x, mapping_
+    return x
+    
+def target(x, column, target, mapping=None, return_param=False):
     """ 
         Performs target encoding.
             
         :param df: Data
         :param column: Column to encode
+        :param mapping: Dictionary {category : value}
+        :param return_param: If True, the mapping is returned
         :return: Encoded data
-        :rtype: pd.Dataframe
+        :rtype: pd.DataFrame
     """
     categories = x[column].unique()
     mapping_ = dict()
@@ -126,7 +144,10 @@ def target(x, column, target, mapping=None):
                 mapping_[category] = 0
 
     x[column] = x[column].map(mapping_)
-    return x, mapping_
+    
+    if return_param:
+        return x, mapping_
+    return x
 
 def frequency(columns, probability=False):
     """ /!\ Warning: Take only column(s) and not DataFrame /!\
