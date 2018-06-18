@@ -633,10 +633,14 @@ class AutoML():
 
         # For Binary variables
         binary_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Binary']].values
+        if list(binary_columns) != [] and binary in ['mean', 'median']:
+            print('WARNING: You are trying to do a {} imputation for binary variables.'.format(binary))
         data = self._impute(data, binary_columns, how=binary)
 
         # For Categorical variables
-        categorical_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Categorical']].values        
+        categorical_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Categorical']].values     
+        if list(categorical) != [] and categorical in ['mean', 'median']:
+            print('WARNING: You are trying to do a {} imputation for categorical variables.'.format(categorical))   
         data = self._impute(data, categorical_columns, how=categorical)
 
         # For Numerical variables
