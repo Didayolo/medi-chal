@@ -21,10 +21,11 @@ class Comparator():
         self.ds2 = ds2
         
         # Processing
-        self.process_data()
+        #self.process_data()
         
         # Check if ds1 and ds2 have the same features number
-        assert (ds1.info['feat_num'] == ds2.info['feat_num']), "Datasets don't have the same features number, {} != {}".format(ds1.info['feat_num'], ds2.info['feat_num'])
+        if ds1.info['feat_num'] == ds2.info['feat_num']:
+            print("WARNING: Datasets don't have the same features number, {} != {}".format(ds1.info['feat_num'], ds2.info['feat_num']))
         
         #Check if ds1 and ds2 are the exactly same dataset. Then no need to perform comparison.
         if self.ds1.get_data().equals(self.ds2.get_data()):
@@ -35,8 +36,7 @@ class Comparator():
         self.compute_descriptors()
         
         # Features/metrics matrix
-        self.comparison_matrix = pd.DataFrame(columns=ds1.get_data('X').columns.values)
-        self.compute_comparison_matrix()
+        self.comparison_matrix = None
         
         # Metrics and plots for privacy and resemblance
         # TODO
@@ -93,15 +93,17 @@ class Comparator():
                 # Distance
                 self.descriptors_dist[k] = distance(descriptors1[k], descriptors2[k], norm=norm)
             
-    def compute_comparison_matrix(self):
+    def compute_comparison_matrix(self, processed=True):
         """ 
             Compute a pandas DataFrame
             Columns: data features
             Rows: univariate comparison metrics (numerical or categorical)
+            
+            :param processed: If True, processed data are used.
         """
         
-        data1 = self.ds1.get_data('X', processed=True)
-        data2 = self.ds2.get_data('X', processed=True)
+        data1 = self.ds1.get_data('X', processed=processed)
+        data2 = self.ds2.get_data('X', processed=processed)
         
         columns = data1.columns.values
         for i, column in enumerate(columns):
@@ -120,18 +122,19 @@ class Comparator():
                 self.comparison_matrix.at['Jensen-Shannon divergence', column] = jensen_shannon(f1, f2)
                 #self.comparison_matrix.at['Chi-square', column] = chi_square(f1, f2)
                 
-    def classify(self, clf=LogisticRegression()):
+    def classify(self, clf=LogisticRegression(), processed=True):
         """ Return the scores (classification report: precision, recall, f1-score) of a classifier train on the data labeled with 0 or 1 according to their original dataset.
             
             :param clf: the classifier. It has to have fit(X,y) and score(X,y) methods.
+            :param processed: If True, processed data are used.
             :return: Classification report (precision, recall, f1-score).
             :rtype: str
         """
         
-        ds1_train = self.ds1.get_data('X_train', processed=True)
-        ds1_test = self.ds1.get_data('X_test', processed=True)
-        ds2_train = self.ds2.get_data('X_train', processed=True)
-        ds2_test = self.ds2.get_data('X_test', processed=True)
+        ds1_train = self.ds1.get_data('X_train', processed=processed)
+        ds1_test = self.ds1.get_data('X_test', processed=processed)
+        ds2_train = self.ds2.get_data('X_train', processed=processed)
+        ds2_test = self.ds2.get_data('X_test', processed=processed)
     
         # Train set
         X1_train, X2_train = list(ds1_train.values), list(ds2_train.values)
@@ -180,9 +183,13 @@ class Comparator():
 
             print('{}: {}'.format(key, value))
 
-    def show_comparison_matrix(self):
+    def show_comparison_matrix(self, processed=True):
         """ Display inter-columns comparison.
         """
+        if self.comparison_matrix is None:
+            self.comparison_matrix = pd.DataFrame(columns=ds1.get_data('X', processed=processed).columns.values)
+            self.compute_comparison_matrix(processed=processed)
+            
         display(self.comparison_matrix)
 
 

@@ -1,4 +1,10 @@
 # Imports
+import sys
+sys.path.append('../processing')
+sys.path.append('../functions')
+sys.path.append('../models')
+sys.path.append('../../data')
+
 import numpy as np
 import os
 from sklearn.model_selection import train_test_split
@@ -683,9 +689,12 @@ class AutoML():
 
         # Variables
         columns_x = self.get_data('X').columns[[i for i, j in enumerate(self.feat_type) if (j=='Binary' or j=='Categorical')]].values
-        ctype = processing.get_types(self.get_data('y'))
-        columns_y = self.get_data('y').columns[[i for i, j in enumerate(ctype) if (j=='Binary' or j=='Categorical')]].values
-        columns= np.concatenate((columns_x, columns_y), axis=0)
+        if 'y' in self.subsets:
+            ctype = processing.get_types(self.get_data('y'))
+            columns_y = self.get_data('y').columns[[i for i, j in enumerate(ctype) if (j=='Binary' or j=='Categorical')]].values
+        else:
+            columns_y = np.array([])
+        columns = np.concatenate((columns_x, columns_y), axis=0)
 
         # One-hot encoding: [0, 0, 1]
         # DIMENSIONALITY CHANGE CASE
@@ -750,18 +759,19 @@ class AutoML():
         return self.processed_data
 
     
-    def classify(self, clf=LogisticRegression(), test_size=0.2):
+    def classify(self, clf=LogisticRegression(), test_size=0.2, processed=True):
         """ Return the scores (classification report: precision, recall, f1-score) of a classifier train on the data labeled with 0 or 1 according to their original subset: train set or test set.
             
             :param clf: the classifier. It has to have fit(X,y) and score(X,y) methods.
-            :param test_size: proportion of test size during train/validation split
+            :param test_size: proportion of test size during train/validation split.
+            :param processed: If True, processed data are used.
             :return: Classification report (precision, recall, f1-score).
             :rtype: str
         """
         # Dataset 1 is the train set
-        ds1 = self.get_data('X_train', processed=True)
+        ds1 = self.get_data('X_train', processed=processed)
         # Dataset 2 is the test set
-        ds2 = self.get_data('X_test', processed=True)
+        ds2 = self.get_data('X_test', processed=processed)
         
         # We re-split each set
         ds1_train, ds1_valid = train_test_split(ds1, test_size=test_size)
