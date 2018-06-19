@@ -83,7 +83,7 @@ class AutoML():
         #self.compute_descriptors()
 
     @classmethod
-    def from_df(cls, input_dir, basename, X, y=None):
+    def from_df(cls, input_dir, basename, X, y=None, test_size=0.2, verbose=False):
         """
             Class Method
             Build AutoML structure from Pandas DataFrame.
@@ -93,7 +93,12 @@ class AutoML():
             :param basename: The name of the dataset.
             :param X: Dataset containing the samples.
             :param y: Dataset containing the labels (optional if no labels).
+            :param test_size: Proportion of the dataset to include in the test split.
+            :param verbose: Display additional information during run.
         """
+        # Remove spaces to prevent confusion with AutoML separator
+        X = X.replace(' ', '_', regex=True)
+        
         def write(filepath, X):
             np.savetxt(filepath, X, delimiter=' ', fmt='%s')
 
@@ -113,16 +118,19 @@ class AutoML():
         write(path + "_feat.type", processing.get_types(X))
 
         if y is not None:
+            # Remove spaces to prevent confusion with AutoML separator
+            y = y.replace(' ', '_', regex=True)
+            
             write(path + ".solution", y.values)
             if isinstance(y, pd.Series):
                 write(path + "_label.name", [y.name])
             else:
                 write(path + "_label.name", y.columns)
 
-        return cls(input_dir, basename)
+        return cls(input_dir, basename, test_size=0.2, verbose=False)
 
     @classmethod
-    def from_csv(cls, input_dir, basename, data_path, target=None, seps=[',', ','], headers=['infer', 'infer']):
+    def from_csv(cls, input_dir, basename, data_path, target=None, seps=[',', ','], headers=['infer', 'infer'], test_size=0.2, verbose=False):
         """
             Class Method
             Build AutoML structure from CSV file.
@@ -130,12 +138,12 @@ class AutoML():
             
             :param input_dir: The directory where the autoML files will be stored.
             :param basename: The name of the dataset.
-            :param X: path of the .csv containing the samples.
-            :param y: path of the .csv containing the labels (optional if no labels).
-                           or column number (integer)
-                           or list of column numbers (list of integers).
-            :param header_X: header (parameter under review)
-            :param header_y: header (parameter under review)
+            :param data_path: path of the .csv containing the samples.
+            :param target: Target column for classification or regression task.
+            :param seps: CSV separators.
+            :param headers: ?
+            :param test_size: Proportion of the dataset to include in the test split.
+            :param verbose: Display additional information during run.
         """
         if os.path.exists(os.path.join(input_dir, data_path)):
             X = pd.read_csv(os.path.join(input_dir, data_path), sep=seps[0], header=headers[0])
@@ -152,8 +160,8 @@ class AutoML():
             y = pd.DataFrame(X[X.columns[target]], columns=X.columns[target])
             X = X.drop(X.columns[target], axis=1)
         elif isinstance(target, str):
-            y = pd.Series(X[target], name=target)
-            X = X.drop([y], axis=1)
+            y = X[target]
+            X = X.drop(target, axis=1)
         else:
             y = None
 
@@ -189,16 +197,13 @@ class AutoML():
             # Create pandas dataframe
             self.data = pd.DataFrame(X, columns=self.feat_name)
             
-            if os.path.exists(
-                os.path.join(self.input_dir, self.basename + '_train.solution')):
+            if os.path.exists(os.path.join(self.input_dir, self.basename + '_train.solution')):
+                y = self.load_label(os.path.join(self.input_dir, self.basename + '_train.solution'))
                 
-                y_train = self.load_label(
-                    os.path.join(self.input_dir, self.basename + '_train.solution'))
-                
-                y_test = self.load_label(
-                    os.path.join(self.input_dir, self.basename + '_test.solution'))
-                
-                y = np.concatenate((y_train, y_test), axis=0)
+                if os.path.exists(os.path.join(self.input_dir, self.basename + '_test.solution')):
+                    y_test = self.load_label(os.path.join(self.input_dir, self.basename + '_test.solution'))
+                    y = np.concatenate((y, y_test), axis=0)
+                    
                 self.subsets['y'] = self.label_name
                 
                 # Create pandas dataframe
