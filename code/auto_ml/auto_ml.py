@@ -130,7 +130,7 @@ class AutoML():
         return cls(input_dir, basename, test_size=0.2, verbose=False)
 
     @classmethod
-    def from_csv(cls, input_dir, basename, data_path, target=None, seps=[',', ','], headers=['infer', 'infer'], test_size=0.2, verbose=False):
+    def from_csv(cls, input_dir, basename, data_path, target=None, seps=',', headers='infer', test_size=0.2, verbose=False):
         """
             Class Method
             Build AutoML structure from CSV file.
@@ -140,19 +140,27 @@ class AutoML():
             :param basename: The name of the dataset.
             :param data_path: path of the .csv containing the samples.
             :param target: Target column for classification or regression task.
-            :param seps: CSV separators.
-            :param headers: ?
+            :param seps: CSV separators. If target is the name of the CSV file containing the class instead of a column name, 
+                            different separators can be defined for X and y (e.g. seps=[',', ';'])
+            :param headers: read_csv header parameter. If target is the name of the CSV file containing the class instead of a column name, 
+                            different headers can be defined for X and y (e.g. headers=['infer', 'infer'])
             :param test_size: Proportion of the dataset to include in the test split.
             :param verbose: Display additional information during run.
         """
+        if isinstance(seps, str):
+            seps = [seps, seps]
+            
+        if isinstance(headers, str):
+            headers = [headers, headers]
+        
         if os.path.exists(os.path.join(input_dir, data_path)):
-            X = pd.read_csv(os.path.join(input_dir, data_path), sep=seps[0], header=headers[0])
+            X = pd.read_csv(os.path.join(input_dir, data_path), sep=seps[0], header=headers[0], engine='python')
         else:
             print(os.path.join(input_dir, data_path))
             raise OSError('{} file does not exist'.format(data_path))
 
         if isinstance(target, str) and os.path.exists(os.path.join(input_dir, target)):
-            y = pd.read_csv(os.path.join(input_dir, y), sep=seps[1], header=headers[1])
+            y = pd.read_csv(os.path.join(input_dir, y), sep=seps[1], header=headers[1], engine='python')
         elif isinstance(target, int):
             y = pd.Series(X[X.columns[target]], name=X.columns[target])
             X = X.drop(X.columns[target], axis=1)
@@ -561,7 +569,7 @@ class AutoML():
             self.info['task'] = 'Unknown'
         return self.info['task']
 
-    def process_data(self, norm='standard', code='label', missing=['most', 'most', 'median']):
+    def process_data(self, norm='standard', code='label', missing=['most', 'most', 'median'], target=None, rare=False, coeff=0.1):
         """ 
             Preprocess data.
             - Missing values inputation ('remove', 'mean', 'median', 'most', None)
@@ -574,6 +582,10 @@ class AutoML():
             :param encoding: 'label', 'one-hot', 'likelihood'
             :param normalization: 'mean', 'min-max' 
             :param missing: 'remove', 'median', 'mean', None, or a list [binary, categorical, numerical]
+            :param target: For target encodig: target column name.
+            :param rare: For one-hot encoding: if True, rare categories are merged into one
+            :param coeff: For one-hot encoding: coefficient defining rare values. 
+                            A rare category occurs less than the (average number of occurrence * coefficient).
             :return: Preprocessed data
             :rtype: pd.DataFrame
         """
@@ -588,7 +600,7 @@ class AutoML():
             self.imputation(binary=missing[0], categorical=missing[1], numerical=missing[2])
         
         # Encoding
-        self.encoding(code=code)
+        self.encoding(code=code, target=target, rare=rare, coeff=coeff)
         
         # Normlization
         self.normalization(norm=norm)
@@ -686,11 +698,14 @@ class AutoML():
 
         return self.processed_data
 
-    def encoding(self, code='label', target=None):
+    def encoding(self, code='label', target=None, rare=False, coeff=0.1):
         """ 
             Encode the data
             :param code: 'label', 'one-hot', 'target', 'likelihood', 'count'
-            :param target: target column for target encoding (the column, not its name)
+            :param target: For target encodig: target column name.
+            :param rare: For one-hot encoding: if True, rare categories are merged into one.
+            :param coeff: For one-hot encoding: coefficient defining rare values. 
+                            A rare category occurs less than the (average number of occurrence * coefficient).
         """
         # TODO clean code
         train = self.get_data('train', processed=True, verbose=False)
@@ -707,10 +722,11 @@ class AutoML():
 
         # One-hot encoding: [0, 0, 1]
         # DIMENSIONALITY CHANGE CASE
+        # Soon : None encoding which remove categorical variables ?
         if code in ['one-hot', 'onehot', 'one_hot']:
             data = self.get_data('X', processed=True, verbose=False)
             for column in columns_x:
-                data = encoding.one_hot(data, column)
+                data = encoding.one_hot(data, column, rare=rare, coeff=coeff)
                 
             if 'y' in self.subsets:
                 data_y = self.get_data('y', processed=True, verbose=False)
@@ -737,7 +753,7 @@ class AutoML():
         # SPECIFIC PARAMETER CASE
         elif code=='target':
             if target is None:
-                target = self.get_data('y_train', verbose=False).as_matrix() #.iloc[0]
+                target = self.get_data('y_train', verbose=False).columns.values #.as_matrix() #.iloc[0]
                 # warning if no y ? Or another column ?
             for column in columns:    
                 train, mapping = encoding.target(train, column, target, return_param=True)
@@ -745,7 +761,10 @@ class AutoML():
             
         # Likelihood encoding
         elif code=='likelihood':
-            f = encoding.likelihood
+            feat_type = np.array(processing.get_types(train))
+            for column in columns:
+                train, mapping = encoding.likelihood(train, column, feat_type, return_param=True)
+                test = encoding.likelihood(test, column, feat_type, mapping=mapping)
                
         # Frequency encoding
         elif code in ['count', 'frequency']:
@@ -754,7 +773,7 @@ class AutoML():
         else:
             raise OSError('{} encoding is not taken in charge'.format(code))
 
-        if code not in ['one-hot', 'onehot', 'one_hot', 'target', 'label']:
+        if code not in ['one-hot', 'onehot', 'one_hot', 'target', 'label', 'likelihood']:
             # For binary and categorigal variables
             for column in columns:
                 train, mapping = f(train, column, return_param=True)
@@ -766,59 +785,6 @@ class AutoML():
             # Not clean...
 
         return self.processed_data
-
-    
-    def classify(self, clf=LogisticRegression(), test_size=0.2, processed=True):
-        """ Return the scores (classification report: precision, recall, f1-score) of a classifier train on the data labeled with 0 or 1 according to their original subset: train set or test set.
-            
-            :param clf: the classifier. It has to have fit(X,y) and score(X,y) methods.
-            :param test_size: proportion of test size during train/validation split.
-            :param processed: If True, processed data are used.
-            :return: Classification report (precision, recall, f1-score).
-            :rtype: str
-        """
-        # Dataset 1 is the train set
-        ds1 = self.get_data('X_train', processed=processed)
-        # Dataset 2 is the test set
-        ds2 = self.get_data('X_test', processed=processed)
-        
-        # We re-split each set
-        ds1_train, ds1_valid = train_test_split(ds1, test_size=test_size)
-        ds2_train, ds2_valid = train_test_split(ds2, test_size=test_size)
-    
-        # Train set
-        X1_train, X2_train = list(ds1_train.values), list(ds2_train.values)
-        X_train = X1_train + X2_train
-        y_train = [0] * len(X1_train) + [1] * len(X2_train)
-        
-        # Shuffle
-        combined = list(zip(X_train, y_train))
-        random.shuffle(combined)
-        X_train[:], y_train[:] = zip(*combined)
-        
-        # Test set
-        X1_test, X2_test = list(ds1_valid.values), list(ds2_valid.values)
-        X_test = X1_test + X2_test
-        y_test = [0] * len(X1_test) + [1] * len(X2_test)
-        
-        # Training
-        clf.fit(X_train, y_train)
-        
-        target_names = ['Train set', 'Test set']
-        return classification_report(clf.predict(X_test), y_test, target_names=target_names)
-        
-    def show_classifier_score(self, clf=LogisticRegression()):
-        """ Display the scores (classification report: precision, recall, f1-score) of a classifier train on the data labeled with 0 or 1 according to their original dataset.
-            (return of 'classify' method)
-            
-            :param clf: the classifier. It has to have fit(X,y) and score(X,y) methods.
-        """
-        report = self.classify(clf=clf) #.round(5)
-        
-        print(clf)
-        print('\n')
-        print(report)
-        print('\n')    
 
 
     def compute_descriptors(self, processed=False):

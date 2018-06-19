@@ -7,25 +7,44 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report
 import random
 from encoding import frequency
+from auto_ml import AutoML
 
 class Comparator():
-    def __init__(self, ds1, ds2):
+    def __init__(self, ds1, ds2=None, test_size=0.2):
         """
             Constructor
             
             :param ds1: AutoML object representing the first dataset.
             :param ds2: AutoML object representing the second dataset.
+                        If ds2 is None, the comparator will compare the train and test sets of ds1.
+            :param test_size: Test set size for the auto-comparator case.
         """
         # Datasets to compare
-        self.ds1 = ds1
-        self.ds2 = ds2
+        if ds2 is None:
+            print('1 dataset detected: comparison between train and test sets.')
+            X_train = ds1.get_data('X_train')
+            X_test = ds1.get_data('X_test')
+            y_train = None
+            y_test = None
+            
+            if 'y' in ds1.subsets:
+                y_train = ds1.get_data('y_train')
+                y_test = ds1.get_data('y_test')
+            
+            self.ds1 = AutoML.from_df('tmp', 'tmp_train', X_train, y=y_train, test_size=test_size)
+            self.ds2 = AutoML.from_df('tmp', 'tmp_test', X_test, y=y_test, test_size=test_size)
+        
+        else:
+            print('2 datasets detected: ready for comparison.')
+            self.ds1 = ds1
+            self.ds2 = ds2
         
         # Processing
         #self.process_data()
         
         # Check if ds1 and ds2 have the same features number
-        if ds1.info['feat_num'] == ds2.info['feat_num']:
-            print("WARNING: Datasets don't have the same features number, {} != {}".format(ds1.info['feat_num'], ds2.info['feat_num']))
+        if self.ds1.info['feat_num'] != self.ds2.info['feat_num']:
+            print("WARNING: Datasets don't have the same features number, {} != {}".format(self.ds1.info['feat_num'], self.ds2.info['feat_num']))
         
         #Check if ds1 and ds2 are the exactly same dataset. Then no need to perform comparison.
         if self.ds1.get_data().equals(self.ds2.get_data()):
@@ -187,7 +206,7 @@ class Comparator():
         """ Display inter-columns comparison.
         """
         if self.comparison_matrix is None:
-            self.comparison_matrix = pd.DataFrame(columns=ds1.get_data('X', processed=processed).columns.values)
+            self.comparison_matrix = pd.DataFrame(columns=self.ds1.get_data('X', processed=processed).columns.values)
             self.compute_comparison_matrix(processed=processed)
             
         display(self.comparison_matrix)
