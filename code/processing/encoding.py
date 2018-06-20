@@ -5,6 +5,7 @@ import pandas as pd
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import LabelEncoder
 from sklearn.feature_extraction import FeatureHasher
+from sklearn.model_selection import train_test_split
 
 from utilities import normalize
 
@@ -248,13 +249,11 @@ def frequency(columns, probability=False):
     return res
     
     
-def cat2vec(data, features, verbose=True):
+def cat2vec(data, size=6, window=8, verbose=True):
     """ TODO
-        Credit: Yonatan Hadar
+        Based on Yonatan Hadar's implementation
     """
-    size=6
-    window=8
-    x_w2v = copy.deepcopy(data.iloc[:,features])
+    x_w2v = copy.deepcopy(data)
     names = list(x_w2v.columns.values)
     
     for i in names:
@@ -264,30 +263,23 @@ def cat2vec(data, features, verbose=True):
     
     for i in x_w2v:
         shuffle(i)
-    w2v = Word2Vec(x_w2v,size=size,window=window)
+    w2v = Word2Vec(x_w2v, size=size, window=window)
 
-    X_train_w2v = copy.copy(X_train)
-    X_test_w2v = copy.copy(X_test)
+    data_w2v = copy.copy(data)
     
     for i in names:
-        X_train_w2v[i] = X_train_w2v[i].astype('category')
-        X_train_w2v[i].cat.categories = ["Feature %s %s" % (i,g) for g in X_train_w2v[i].cat.categories]
+        data_w2v[i] = data_w2v[i].astype('category')
+        data_w2v[i].cat.categories = ["Feature %s %s" % (i,g) for g in data_w2v[i].cat.categories]
     
-    for i in names:
-        X_test_w2v[i]=X_test_w2v[i].astype('category')
-        X_test_w2v[i].cat.categories = ["Feature %s %s" % (i,g) for g in X_test_w2v[i].cat.categories]
-    X_train_w2v = X_train_w2v.values
-    X_test_w2v = X_test_w2v.values
-    x_w2v_train = np.random.random((len(X_train_w2v),size*X_train_w2v.shape[1]))
+    data_w2v = data_w2v.values
+    x_w2v_train = np.random.random((len(data_w2v),size*data_w2v.shape[1]))
     
-    for j in range(X_train_w2v.shape[1]):
-        for i in range(X_train_w2v.shape[0]):
-            if X_train_w2v[i,j] in w2v:
-                x_w2v_train[i,j*size:(j+1)*size] = w2v[X_train_w2v[i,j]]
+    for j in range(data_w2v.shape[1]):
+        for i in range(data_w2v.shape[0]):
+            if data_w2v[i,j] in w2v:
+                x_w2v_train[i,j*size:(j+1)*size] = w2v[data_w2v[i,j]]
 
-    x_w2v_test = np.random.random((len(X_test_w2v),size*X_test_w2v.shape[1]))
-    for j in range(X_test_w2v.shape[1]):
-        for i in range(X_test_w2v.shape[0]):
-            if X_test_w2v[i,j] in w2v:
-                x_w2v_test[i,j*size:(j+1)*size] = w2v[X_test_w2v[i,j]]
-
+    return pd.DataFrame(x_w2v_train)
+    
+ 
+# Deep category embedding
