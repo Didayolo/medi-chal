@@ -706,7 +706,7 @@ class AutoML():
     def encoding(self, code='label', target=None, rare=False, coeff=0.1):
         """ 
             Encode the data
-            :param code: 'label', 'one-hot', 'target', 'likelihood', 'count'
+            :param code: 'label', 'one-hot', 'target', 'likelihood', 'count', 'probability'
             :param target: For target encodig: target column name.
             :param rare: For one-hot encoding: if True, rare categories are merged into one.
             :param coeff: For one-hot encoding: coefficient defining rare values. 
@@ -771,6 +771,13 @@ class AutoML():
                 train, mapping = encoding.likelihood(train, column, feat_type, return_param=True)
                 test = encoding.likelihood(test, column, feat_type, mapping=mapping)
                
+               
+        # Probability encoding (frequency normalized)
+        elif code == 'probability':
+            for column in columns:
+                train, mapping = encoding.count(train, column, probability=True, return_param=True)
+                test = encoding.count(test, column, probability=True, mapping=mapping)
+               
         # Frequency encoding
         elif code in ['count', 'frequency']:
             f = encoding.count
@@ -778,7 +785,7 @@ class AutoML():
         else:
             raise OSError('{} encoding is not taken in charge'.format(code))
 
-        if code not in ['one-hot', 'onehot', 'one_hot', 'target', 'label', 'likelihood']:
+        if code not in ['one-hot', 'onehot', 'one_hot', 'target', 'label', 'likelihood', 'probability']:
             # For binary and categorigal variables
             for column in columns:
                 train, mapping = f(train, column, return_param=True)

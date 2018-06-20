@@ -106,7 +106,7 @@ def likelihood(x, column, feat_type=None, mapping=None, return_param=False):
     return x
 
 
-def count(x, column, mapping=None, return_param=False):
+def count(x, column, mapping=None, probability=False, return_param=False):
     """ Performs frequency encoding.
         Categories are replaced by their number of occurence.
         Soon: possibility of probability instead of count (normalization)
@@ -114,6 +114,7 @@ def count(x, column, mapping=None, return_param=False):
         :param df: Data
         :param column: Column to encode
         :param mapping: Dictionary {category : value}
+        :param probability: If True, return probability instead of frequency
         :param return_param: If True, the mapping is returned
         :return: Encoded data
         :rtype: pd.DataFrame
@@ -122,7 +123,7 @@ def count(x, column, mapping=None, return_param=False):
     
     if mapping is None:
         mapping = dict()
-        for e in column:
+        for e in x[column]:
             if e in mapping:
                 mapping[e] += 1
             else:
@@ -132,6 +133,11 @@ def count(x, column, mapping=None, return_param=False):
         for category in categories:
             if category not in mapping:
                 mapping[category] = 0 # TODO
+                
+    if probability:
+        factor = 1.0 / sum(mapping.values())
+        for k in mapping:
+            mapping[k] = float(format(mapping[k] * factor, '.3f'))
     
     x[column] = x[column].map(mapping)
     
@@ -158,7 +164,7 @@ def target(x, column, target, mapping=None, return_param=False):
     if mapping is None:
         mapping = dict()
         for i, category in enumerate(categories):
-            mapping[category] = np.mean(target[x[column]==category]).round(3) # TODO
+            mapping[category] = np.mean(target[x[column]==category]).round(3)
 
     else:
         for category in categories:
@@ -172,31 +178,17 @@ def target(x, column, target, mapping=None, return_param=False):
     return x
     
 
-def feature_hashing(X_train, X_test, verbose=True):
+def feature_hashing(x, n_features=10, verbose=True):
     """ Feature hashing
+        ...
     """
-    X_train_hash = copy.copy(X_train)
-    X_test_hash = copy.copy(X_test)
+    h = FeatureHasher(n_features=n_features)
+    x = x.to_dict('records')
+    x = h.transform(x)
+    x = x.toarray() # to array
+    x = pd.DataFrame(x) # to df
+    return x
     
-    for i in range(X_train_hash.shape[1]):
-        X_train_hash.iloc[:,i]=X_train_hash.iloc[:,i].astype('str')
-        
-    for i in range(X_test_hash.shape[1]):
-        X_test_hash.iloc[:,i]=X_test_hash.iloc[:,i].astype('str')
-        
-    h = FeatureHasher(n_features=100,input_type="string")
-    X_train_hash = h.transform(X_train_hash.values)
-    X_test_hash = h.transform(X_test_hash.values)
-
-    l.fit(X_train_hash,y_train)
-    y_pred = l.predict_proba(X_test_hash)
-    if verbose:
-        print(log_loss(y_test,y_pred))
-
-    r.fit(X_train_hash,y_train)
-    y_pred = r.predict_proba(X_test_hash)
-    if verbose:
-        print(log_loss(y_test,y_pred))
 
 def frequency(columns, probability=False):
     """ /!\ Warning: Take only column(s) and not DataFrame /!\
@@ -299,12 +291,3 @@ def cat2vec(data, features, verbose=True):
             if X_test_w2v[i,j] in w2v:
                 x_w2v_test[i,j*size:(j+1)*size] = w2v[X_test_w2v[i,j]]
 
-    l.fit(x_w2v_train,y_train)
-    y_pred = l.predict_proba(x_w2v_test)
-    if verbose:
-        print(log_loss(y_test,y_pred))
-
-    r.fit(x_w2v_train,y_train)
-    y_pred = r.predict_proba(x_w2v_test)
-    if verbose:
-        print(log_loss(y_test,y_pred))
