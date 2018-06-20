@@ -11,9 +11,9 @@ from auto_ml import AutoML
 
 # Load AutoML files
 data_path = '../../data/'
-input_dir = data_path + 'mushrooms'
-basename = 'mushrooms'
-D = AutoML(input_dir, basename)
+input_dir = 'adult'
+basename = 'adult'
+D = AutoML(data_path+input_dir, basename)
 
 # Identify categorical variables
 categorical_variables = [x == 'Categorical' for x in D.feat_type]
@@ -35,4 +35,4 @@ result, sam, data = model.predict(data, categorical_variables,
 
 # Generate Data and save it.
 df = pd.DataFrame(sam(data).data.numpy()) # columns name...
-AutoML.from_df(input_dir+'_gen_sam', basename+'_gen_sam', df, y=None)
+AutoML.from_df(data_path+input_dir+'_gen_sam', basename+'_gen_sam', df, y=None)

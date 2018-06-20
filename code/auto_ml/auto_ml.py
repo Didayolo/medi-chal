@@ -96,6 +96,21 @@ class AutoML():
             :param test_size: Proportion of the dataset to include in the test split.
             :param verbose: Display additional information during run.
         """
+        if y is not None:
+            # If y is a column name
+            if isinstance(y, str):
+                y = X[y]
+                X = X.drop(y, axis=1)
+            
+            # Remove spaces to prevent confusion with AutoML separator
+            y = y.replace(' ', '_', regex=True)
+            
+            write(path + ".solution", y.values)
+            if isinstance(y, pd.Series):
+                write(path + "_label.name", [y.name])
+            else:
+                write(path + "_label.name", y.columns)
+        
         # Remove spaces to prevent confusion with AutoML separator
         X = X.replace(' ', '_', regex=True)
         
@@ -116,16 +131,6 @@ class AutoML():
             X = X.add_prefix('X')
         write(path + "_feat.name", X.columns.values)
         write(path + "_feat.type", processing.get_types(X))
-
-        if y is not None:
-            # Remove spaces to prevent confusion with AutoML separator
-            y = y.replace(' ', '_', regex=True)
-            
-            write(path + ".solution", y.values)
-            if isinstance(y, pd.Series):
-                write(path + "_label.name", [y.name])
-            else:
-                write(path + "_label.name", y.columns)
 
         return cls(input_dir, basename, test_size=0.2, verbose=False)
 
@@ -435,7 +440,7 @@ class AutoML():
         
         # Get data as ndarray
         if array:
-            return data.as_matrix() #data.values
+            return data.values
             
         return data
         
