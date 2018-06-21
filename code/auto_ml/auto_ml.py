@@ -706,7 +706,7 @@ class AutoML():
     def encoding(self, code='label', target=None, rare=False, coeff=0.1):
         """ 
             Encode the data
-            :param code: 'label', 'one-hot', 'target', 'likelihood', 'count', 'probability'
+            :param code: 'none', 'label', 'one-hot', 'target', 'likelihood', 'count', 'probability'
             :param target: For target encodig: target column name.
             :param rare: For one-hot encoding: if True, rare categories are merged into one.
             :param coeff: For one-hot encoding: coefficient defining rare values. 
@@ -736,7 +736,7 @@ class AutoML():
             if 'y' in self.subsets:
                 data_y = self.get_data('y', processed=True, verbose=False)
                 for column in columns_y:
-                    data_y = encoding.one_hot(data_y, column)
+                    data_y = encoding.one_hot(data_y, column, rare=rare, coeff=coeff)
             
                 self.processed_data = pd.concat([data, data_y], axis=1)
                 self.processed_subsets['y'] = data_y.columns.values
@@ -747,6 +747,26 @@ class AutoML():
             # SUBSETS need to be modified with columns !
             self.processed_subsets['X'] = data.columns.values
             
+        elif code is None or code in ['none', 'None']:
+            data = self.get_data('X', processed=True, verbose=False)
+            for column in columns_x:
+                data = encoding.none(data, column)
+                
+            if 'y' in self.subsets:
+                data_y = self.get_data('y', processed=True, verbose=False)
+                for column in columns_y:
+                    # Label encoding to prevent removing y
+                    data_y = encoding.label(data_y, column)
+            
+                self.processed_data = pd.concat([data, data_y], axis=1)
+                self.processed_subsets['y'] = data_y.columns.values
+            
+            else:    
+                self.processed_data = data
+            # WARNING, none changes variable names and dimensionality so...
+            # SUBSETS need to be modified with columns !
+            self.processed_subsets['X'] = data.columns.values
+            
         # Label encoding: [1, 2, 3]
         # NO MAPPING CASE
         elif code=='label':
@@ -754,8 +774,8 @@ class AutoML():
             for column in columns:
                 self.processed_data = encoding.label(data, column)
             
-        # Target encoding
         # SPECIFIC PARAMETER CASE
+        # Target encoding
         elif code=='target':
             if target is None:
                 target = self.get_data('y_train', verbose=False).columns.values #.as_matrix() #.iloc[0]
@@ -785,13 +805,13 @@ class AutoML():
         else:
             raise OSError('{} encoding is not taken in charge'.format(code))
 
-        if code not in ['one-hot', 'onehot', 'one_hot', 'target', 'label', 'likelihood', 'probability']:
+        if code not in ['one-hot', 'onehot', 'one_hot', 'target', 'label', 'likelihood', 'probability', 'none']:
             # For binary and categorigal variables
             for column in columns:
                 train, mapping = f(train, column, return_param=True)
                 test = f(test, column, mapping)
 
-        if code not in ['one-hot', 'one_hot', 'onehot', 'label']:
+        if code not in ['one-hot', 'one_hot', 'onehot', 'label', 'none']:
             self.set_data(train, 'train', processed=True)
             self.set_data(test, 'test', processed=True)
             # Not clean...

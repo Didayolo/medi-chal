@@ -16,6 +16,12 @@ import copy
 from gensim.models.word2vec import Word2Vec
 from random import shuffle
 
+def none(x, column):
+    """ Remove column from x
+    """
+    x.drop([column], axis=1, inplace=True)
+    return x
+
 def label(x, column):
     """ 
         Performs label encoding.
