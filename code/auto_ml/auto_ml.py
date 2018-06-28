@@ -96,11 +96,25 @@ class AutoML():
             :param test_size: Proportion of the dataset to include in the test split.
             :param verbose: Display additional information during run.
         """
+        # To save files
+        def write(filepath, X):
+            np.savetxt(filepath, X, delimiter=' ', fmt='%s')
+
+        # Create directory
+        if not os.path.isdir(input_dir):
+            os.mkdir(input_dir)
+        input_dir += '/' + basename + '_automl'
+        if not os.path.isdir(input_dir):
+            os.mkdir(input_dir)
+            
+        path = input_dir + '/' + basename
+        
         if y is not None:
             # If y is a column name
             if isinstance(y, str):
+                yname = y
                 y = X[y]
-                X = X.drop(y, axis=1)
+                X = X.drop(yname, axis=1)
             
             # Remove spaces to prevent confusion with AutoML separator
             y = y.replace(' ', '_', regex=True)
@@ -110,25 +124,15 @@ class AutoML():
                 write(path + "_label.name", [y.name])
             else:
                 write(path + "_label.name", y.columns)
-        
+                
         # Remove spaces to prevent confusion with AutoML separator
-        X = X.replace(' ', '_', regex=True)
+        X = X.replace(' ', '_', regex=True) #can cause memory error ?
         
-        def write(filepath, X):
-            np.savetxt(filepath, X, delimiter=' ', fmt='%s')
-
-        if not os.path.isdir(input_dir):
-            os.mkdir(input_dir)
-
-        input_dir += '/' + basename + '_automl'
-        if not os.path.isdir(input_dir):
-            os.mkdir(input_dir)
-
-
-        path = input_dir + '/' + basename
         write(path + ".data", X.values)
+        
         if X.columns.values.dtype == np.int64:
             X = X.add_prefix('X')
+            
         write(path + "_feat.name", X.columns.values)
         write(path + "_feat.type", processing.get_types(X))
 
