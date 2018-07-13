@@ -1,4 +1,6 @@
 # Imports
+
+import sys
 from utilities import *
 from scipy.stats import ttest_ind
 from IPython.display import display
@@ -8,6 +10,8 @@ from sklearn.metrics import classification_report
 import random
 from encoding import frequency
 from auto_ml import AutoML
+import matplotlib.pyplot as plt
+
 
 class Comparator():
     def __init__(self, ds1, ds2=None, test_size=0.2):
@@ -79,15 +83,149 @@ class Comparator():
             
             :param norm: 'l0', 'manhattan', 'euclidean', 'minimum', 'maximum'
         """
-        data1 = self.ds1.get_data('X', processed=True).values
-        data2 = self.ds2.get_data('X', processed=True).values
-        return distance(data1, data2, axis=axis, norm=norm)
+        #self.process_data()
+        A = self.ds1.get_data('X', processed=False).values
+        B = self.ds2.get_data('X', processed=False).values
+        #print(A)
+        ds1_shape = A.shape
+        ds2_shape = B.shape
+        
+        if ds1_shape[1] != ds2_shape[1]:
+            printmd('Datasets have different number of features!')
+        else:
+            try:
+                return distance(A, B, axis=axis, norm=norm)
+            except ValueError:
+                printmd('Number of samples unequal in datasets. Selecting minimum number of equal samples randomly')
+                min_sample_num = min(ds1_shape[0], ds2_shape[0])
+                A1 = A[np.random.choice(A.shape[0], min_sample_num, replace=False)]
+                B1 = B[np.random.choice(B.shape[0], min_sample_num, replace=False)]
+                #print(A1)
+                #print(B1)
+                return distance(A1, B1, axis=axis, norm=norm)
 
+    def distance_correlation(self):
+        #self.process_data()
+        
+        A = self.ds1.get_data('X', processed = False)
+        B = self.ds2.get_data('X', processed = False)
+        
+        ds1_shape = A.shape
+        ds2_shape = B.shape
+        
+        if ds1_shape[1] != ds2_shape[1]:
+            printmd('Datasets have different number of features!')
+        else:
+            try:
+                return distance_correlation(A, B)
+            except ValueError:
+                printmd('Number of samples unequal in datasets. Selecting minimum number of equal samples randomly')
+                min_sample_num = min(ds1_shape[0], ds2_shape[0])
+                A1 = A.sample(frac = min_sample_num/ds1_shape[0], replace = False)
+                B1 = B.sample(frac = min_sample_num/ds2_shape[0], replace = False)
+                return distance_correlation(A1, B1)
+        
+    def dcorr(self):
+        #self.process_data()
+        
+        A = self.ds1.get_data('X', processed = False)
+        B = self.ds2.get_data('X', processed = False)
+        
+        ds1_shape = A.shape
+        ds2_shape = B.shape
+        
+        if ds1_shape[1] != ds2_shape[1]:
+            printmd('Datasets have different number of features!')
+        else:
+            try:
+                return corr_discrepancy(A, B)
+            except ValueError:
+                printmd('Number of samples unequal in datasets. Selecting minimum number of equal samples randomly')
+                min_sample_num = min(ds1_shape[0], ds2_shape[0])
+                A1 = A.sample(frac = min_sample_num/ds1_shape[0], replace = True)
+                B1 = B.sample(frac = min_sample_num/ds2_shape[0], replace = True)
+                return corr_discrepancy(A1, B1)
+          
     def dcov(self):
         """ Compute the distance correlation between ds1 and ds2.
         """
-        return distcorr(self.ds1.get_data('X'), self.ds2.get_data('X'))
-
+        #self.process_data()
+        
+        A = self.ds1.get_data('X', processed = False)
+        B = self.ds2.get_data('X', processed = False)
+        
+        ds1_shape = A.shape
+        ds2_shape = B.shape
+        
+        if ds1_shape[1] != ds2_shape[1]:
+            printmd('Datasets have different number of features!')
+        else:
+            try:
+                return cov_discrepancy(A, B)
+            except ValueError:
+                printmd('Number of samples unequal in datasets. Selecting minimum number of equal samples randomly')
+                min_sample_num = min(ds1_shape[0], ds2_shape[0])
+                A1 = A.sample(frac = min_sample_num/ds1_shape[0], replace = True)
+                B1 = B.sample(frac = min_sample_num/ds2_shape[0], replace = True)
+                return cov_discrepancy(A1, B1)
+           
+    def ks_test(self):
+        #self.process_data()
+        A = self.ds1.get_data('X', processed=False).values
+        B = self.ds2.get_data('X', processed=False).values
+        ds1_shape = A.shape
+        ds2_shape = B.shape
+        
+        if ds1_shape[1] != ds2_shape[1]:
+            printmd('Datasets have different number of features!')
+        else:
+            try:
+                return ks_test(A, B)
+            except ValueError:
+                printmd('Number of samples unequal in datasets. Selecting minimum number of equal samples randomly')
+                min_sample_num = min(ds1_shape[0], ds2_shape[0])
+                A1 = A[np.random.choice(A.shape[0], min_sample_num, replace=True)]
+                B1 = B[np.random.choice(B.shape[0], min_sample_num, replace=True)]
+                return ks_test(A1, B1)
+            
+    def nn_discrepancy(self):
+        #self.process_data()
+        A = self.ds1.get_data('X', processed=False).values
+        B = self.ds2.get_data('X', processed=False).values
+        ds1_shape = A.shape
+        ds2_shape = B.shape
+        
+        if ds1_shape[1] != ds2_shape[1]:
+            printmd('Datasets have different number of features!')
+        else:
+            try:
+                return nn_discrepancy(A, B)
+            except ValueError:
+                printmd('Number of samples unequal in datasets. Selecting minimum number of equal samples randomly')
+                min_sample_num = min(ds1_shape[0], ds2_shape[0])
+                A1 = A[np.random.choice(A.shape[0], min_sample_num, replace=True)]
+                B1 = B[np.random.choice(B.shape[0], min_sample_num, replace=True)]
+                return nn_discrepancy(A1, B1)
+            
+    def relief_divergence(self):
+        #self.process_data()
+        A = self.ds1.get_data('X', processed=False).values
+        B = self.ds2.get_data('X', processed=False).values
+        ds1_shape = A.shape
+        ds2_shape = B.shape
+        
+        if ds1_shape[1] != ds2_shape[1]:
+            printmd('Datasets have different number of features!')
+        else:
+            try:
+                return relief_divergence(A, B)
+            except ValueError:
+                printmd('Number of samples unequal in datasets. Selecting minimum number of equal samples randomly')
+                min_sample_num = min(ds1_shape[0], ds2_shape[0])
+                A1 = A[np.random.choice(A.shape[0], min_sample_num, replace=True)]
+                B1 = B[np.random.choice(B.shape[0], min_sample_num, replace=True)]
+                return relief_divregence(A1, B1)
+  
     def t_test(self):
         """ Perform Student's t-test.
         """
@@ -99,9 +237,9 @@ class Comparator():
             
             :param norm: 'l0', 'manhattan', 'euclidean', 'minimum', 'maximum'
         """
-        
-        self.ds1.compute_descriptors(processed=processed)
-        self.ds2.compute_descriptors(processed=processed)
+        self.process_data()
+        self.ds1.compute_descriptors(processed=True)
+        self.ds2.compute_descriptors(processed=True)
         
         descriptors1 = self.ds1.descriptors
         descriptors2 = self.ds2.descriptors
@@ -120,9 +258,9 @@ class Comparator():
             
             :param processed: If True, processed data are used.
         """
-        
-        data1 = self.ds1.get_data('X', processed=processed)
-        data2 = self.ds2.get_data('X', processed=processed)
+        self.process_data()
+        data1 = self.ds1.get_data('X', processed=True)
+        data2 = self.ds2.get_data('X', processed=True)
         
         columns = data1.columns.values
         for i, column in enumerate(columns):
@@ -150,10 +288,10 @@ class Comparator():
             :rtype: str
         """
         
-        ds1_train = self.ds1.get_data('X_train', processed=processed)
-        ds1_test = self.ds1.get_data('X_test', processed=processed)
-        ds2_train = self.ds2.get_data('X_train', processed=processed)
-        ds2_test = self.ds2.get_data('X_test', processed=processed)
+        ds1_train = self.ds1.get_data('X_train', processed=True)
+        ds1_test = self.ds1.get_data('X_test', processed=True)
+        ds2_train = self.ds2.get_data('X_train', processed=True)
+        ds2_test = self.ds2.get_data('X_test', processed=True)
     
         # Train set
         X1_train, X2_train = list(ds1_train.values), list(ds2_train.values)
@@ -206,8 +344,8 @@ class Comparator():
         """ Display inter-columns comparison.
         """
         if self.comparison_matrix is None:
-            self.comparison_matrix = pd.DataFrame(columns=self.ds1.get_data('X', processed=processed).columns.values)
-            self.compute_comparison_matrix(processed=processed)
+            self.comparison_matrix = pd.DataFrame(columns=self.ds1.get_data('X', processed=True).columns.values)
+            self.compute_comparison_matrix(processed=True)
             
         display(self.comparison_matrix)
 
@@ -270,10 +408,27 @@ class Comparator():
         printmd('** Resemblance:** ' + str(resemblanceB))
         
      
-    def show_mmd(self):
+    def show_mmd(self, alpha = 0.2):
         """ Compute and show MMD between ds1 and ds2
         """
-        A = self.ds1.get_processed_data()['X'].as_matrix()
-        B = self.ds2.get_processed_data()['X'].as_matrix()
-        score = mmd(A, B)
-        print('Maximum mean discrepancy: ' + str(score))
+        #self.process_data()
+        
+        A = self.ds1.get_data('X', processed = False)
+        B = self.ds2.get_data('X', processed = False)
+        
+        ds1_shape = A.shape
+        ds2_shape = B.shape
+        
+        if ds1_shape[1] != ds2_shape[1]:
+            printmd('Datasets have different number of features!')
+        else:
+            try:
+                score = mmd(A, B, alpha)
+                print('Maximum mean discrepancy: ' + str(score))
+            except ValueError:
+                printmd('Number of samples unequal in datasets. Selecting minimum number of equal samples randomly')
+                min_sample_num = min(ds1_shape[0], ds2_shape[0])
+                A1 = A.sample(frac = min_sample_num/ds1_shape[0], replace = True)
+                B1 = B.sample(frac = min_sample_num/ds2_shape[0], replace = True)
+                score = mmd(A1, B1, alpha)
+                print('Maximum mean discrepancy: ' + str(score))
