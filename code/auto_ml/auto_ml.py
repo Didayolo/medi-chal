@@ -672,6 +672,10 @@ class AutoML():
         # For Numerical variables
         numerical_columns = self.data.columns[[i for i, j in enumerate(self.feat_type) if j=='Numerical']].values
         data = self._impute(data, numerical_columns, how=numerical)
+        for column in numerical_columns:
+            # Replace +Inf by the maximum and -Inf by the minimum
+            data[column] = data[column].replace(np.inf, max(data[column]))
+            data[column] = data[column].replace(-np.inf, min(data[column]))
 
         self.set_data(data, processed=True)
 

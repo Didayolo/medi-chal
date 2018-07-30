@@ -8,7 +8,7 @@ path.append(problem_dir)
 from auto_ml import AutoML
 
 class RF_generator():
-    def __init__(self, ds):
+    def __init__(self, ds, **kwargs):
         """ Data generator using multiple imputations with random forest
             Input:
               ds: AutoML object containing data
@@ -22,7 +22,7 @@ class RF_generator():
         
         # AutoML dataset
         self.ds = ds
-        self.ds.process_data() # todo: optimize
+        self.ds.process_data(**kwargs) # todo: optimize
         
         # Generated DataFrame
         self.gen_data = self.ds.get_data(processed=True).copy()
@@ -77,6 +77,7 @@ class RF_generator():
             
                 if np.random.random() < p:
                     row = data.loc[[x]].drop(y, axis=1)
+                    # WARNING
                     self.gen_data.at[x, y] = self.models[i].predict(row)
         
         return self.gen_data
@@ -118,7 +119,13 @@ class RF_generator():
             
                 if np.random.random() < p:
                     row = data.loc[[x]].drop(y, axis=1)
-                    self.gen_data.at[x, y] = model.predict(row)
+                    
+                    # DEBUG
+                    prediction = model.predict(row)
+                    if isinstance(prediction, np.ndarray):
+                        self.gen_data.at[x, y] = prediction[0]
+                    else:
+                        self.gen_data.at[x, y] = prediction
                     
         return self.gen_data
     
