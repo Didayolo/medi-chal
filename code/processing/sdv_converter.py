@@ -5,7 +5,6 @@ import pandas as pd
 from scipy.stats import truncnorm
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import LabelEncoder
 
 
 def fix_ages(df):
@@ -121,12 +120,11 @@ def undo_numeric(col, min_col, max_col):
 
 def read_data(filename):
     """read in the file"""
+    data = None
     if filename.endswith('.csv'):
         data = pd.read_csv(filename)
     elif filename.endswith('.npy'):
         data = pd.DataFrame(np.load(filename))
-    else:
-        data = None
 
     # check if file can be read
     if data is None:
@@ -136,13 +134,16 @@ def read_data(filename):
 
 
 def encode(df):
+    """encode the data into SDV format"""
     # loop through every column
     limits = {}
     min_max = {}
     for c in df.columns:
+        # if object or int
         if df[c].dtype.char == 'O' or df[c].dtype.char == 'l':
             df[c], lim = categorical(df[c])
             limits[c] = lim
+        # if decimal
         elif df[c].dtype.char == 'd':
             df[c], min_res, max_res = numeric(df[c])
             min_max[c] = (min_res, max_res)
@@ -150,37 +151,53 @@ def encode(df):
     return df, limits, min_max
 
 
-def decode(df, limits, min_max):
-    for c in df.columns:
+def decode(df_new, df_orig, limits, min_max):
+    """decode the data from SDV format"""
+    df_new = pd.DataFrame(df_new, columns=df_orig.columns)
+    for c in df_new.columns:
         if c in limits:
-            df[c] = undo_categorical(df[c], limits[c])
+            df_new[c] = undo_categorical(df_new[c], limits[c])
         else:
-            df[c] = undo_numeric(df[c], *min_max[c])
+            df_new[c] = undo_numeric(df_new[c], *min_max[c])
 
-    return df
+    return df_new
 
 
 def save_files(df, limits, min_max, prefix):
-    # save data and decoders
+    """save the sdv file and decoders"""
     df.to_csv(f'{prefix}_sdv.csv', index=False)
     pickle.dump(limits, open(f'{prefix}.limits', 'wb'))
     pickle.dump(min_max, open(f'{prefix}.min_max', 'wb'))
 
 
-def read_decoders(prefix):
+def read_decoders(prefix, npy_file):
     """read the decoder files"""
     limits = pickle.load(open(f'{prefix}.limits', 'rb'))
     min_max = pickle.load(open(f'{prefix}.min_max', 'rb'))
-    return limits, min_max
+    if args.npy_file.endswith('.csv'):
+        npy = pd.read_csv(npy_file)
+    else:
+        npy = np.load(npy_file)
+
+    return limits, min_max, npy
 
 
 def parse_arguments(parser):
     """parser for arguments and options"""
     parser.add_argument('data_file', type=str, metavar='<data_file>',
                         help='The data to transform')
-    parser.add_argument('op', type=str, metavar='<encode_or_decode>',
-                        help='Either encode or decode for the '
-                             'operation to run')
+    subparsers = parser.add_subparsers(dest='op')
+    subparsers.add_parser('encode')
+
+    parser_decode = subparsers.add_parser('decode')
+    parser_decode.add_argument('npy_file', type=str, metavar='<npy_file>',
+                               help='numpy file to decode')
+    parser.add_argument('--fix_ages', dest='ages', action='store_const',
+                        const=True, default=False, help='fix negative ages')
+    parser.add_argument('--impute', dest='impute', action='store_const',
+                        const=True, default=False,
+                        help='impute missing values')
+
     return parser.parse_args()
 
 
@@ -191,18 +208,20 @@ if __name__ == '__main__':
     df_raw = read_data(args.data_file)
 
     if args.op == 'encode':
-        # fix negative ages
-        df_raw = fix_ages(df_raw)
+        if args.ages:
+            # fix negative ages
+            df_raw = fix_ages(df_raw)
 
-        # fix the NA values
-        df_raw = fix_na_values(df_raw)
-        assert df_raw.isna().sum().sum() == 0
+        if args.impute:
+            # fix the NA values
+            df_raw = fix_na_values(df_raw)
+            assert df_raw.isna().sum().sum() == 0
 
         df_converted, lims, mm = encode(df_raw)
-        save_files(df_converted, lims, mm, args.data_file.strip('.csv'))
+        save_files(df_converted, lims, mm, args.data_file[:-4])
     elif args.op == 'decode':
-        lims, mm = read_decoders(args.data_file.strip('.csv'))
-        df_converted = decode(df_raw, lims, mm)
+        lims, mm, npy_new = read_decoders(args.data_file[:-4], args.npy_file)
+        df_converted = decode(npy_new, df_raw, lims, mm)
         # save decoded
-        df_converted.to_csv(args.data_file.strip('.csv') + '_normal.csv',
+        df_converted.to_csv(args.data_file[:-4] + '_normal.csv',
                             index=False)
