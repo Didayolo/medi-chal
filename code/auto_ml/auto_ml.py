@@ -925,15 +925,12 @@ class AutoML():
         data = self.get_data(s, processed)
         show_classes(data)
 
-    def show_pca(self, x='X', y=None, label=False, processed=False):
+    def show_pca(self, x='X', y=None, processed=False):
         """ Show PCA
-            
-            :param label: If True, show class y with colors and legend.
         """
         X = self.get_data(x, processed)
         
-        if label==True:
-            y = 'y'
+        if y is not None:
             Y = self.get_data(y, processed)
             lenx, leny = X.shape[0], Y.shape[0]
             
@@ -1019,6 +1016,12 @@ class AutoML():
             printmd('** Linear discriminant analysis **')
             for i in range(len(x_sets)):
                 self.show_lda(x_sets[i], y_sets[i], processed)
+             
+        # No class   
+        else:
+            printmd('** Principal components analysis **')
+            for i in range(len(x_sets)):
+                self.show_pca(x_sets[i], processed)
                 
        
     def choose_sets(self, sets=[]):

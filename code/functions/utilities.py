@@ -532,7 +532,7 @@ def minimum_distance(A, B, norm='manhattan'):
             
     return mdA, mdB
      
-def compute_mda(md, norm='manhattan', precision=0.2, threshold=None, area='simpson'):
+def compute_mda(md, norm='manhattan', precision=0.2, threshold=0.4, area='simpson'):
     """ Compute accumulation between minimum distances.
         Gives the y axis, useful for privacy/resemblance metrics.
         
@@ -550,8 +550,8 @@ def compute_mda(md, norm='manhattan', precision=0.2, threshold=None, area='simps
     """
     mini, maxi = 0, max(max(md), 1) # min(md)
     
-    if threshold <= 0:
-        print('Warning: threshold must be greater than 0.')
+    if threshold <= 0 or threshold >=1:
+        print('Warning: threshold must be between 0 and 1.')
     
     # x axis
     x = np.arange(mini, maxi, precision)
@@ -561,18 +561,15 @@ def compute_mda(md, norm='manhattan', precision=0.2, threshold=None, area='simps
   
     for e in x:
         y.append(sum(1 for i in md if i < e))
-        
-    if threshold == None:
-        threshold = np.percentile(x, 5) # 5th percentile
-    
-    # Index of threshold in x
-    i = int(np.ceil(threshold / precision))
     
     # Normalization
     x = normalize(x, normalization='min-max')
-    y= normalize(y,normalization='min-max')
+    y = normalize(y,normalization='min-max')
     precision = x[1] - x[0]
-    threshold = x[i]
+    #threshold = x[i]
+    
+    # Index of threshold in x
+    i = int(np.ceil(threshold / precision))
     
     if area == 'simpson':
         compute_area = simps

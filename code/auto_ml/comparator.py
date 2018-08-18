@@ -63,8 +63,8 @@ class Comparator():
         
         # Metrics and plots for privacy and resemblance
         # TODO
-        self.mda1 = None
-        self.mda2 = None
+        self.mda = None
+        #self.mda2 = None
 
     def get_ds1(self):
         return self.ds1
@@ -367,27 +367,29 @@ class Comparator():
         mdA, mdB = minimum_distance(A, B, norm=norm)
         
         # Curve and metrics
-        self.mda1 = compute_mda(mdA, precision=precision, threshold=threshold, area=area)
-        self.mda2 = compute_mda(mdB, precision=precision, threshold=threshold, area=area)
+        # Symmetrize
+        self.mda = compute_mda(mdA+mdB, precision=precision, threshold=threshold, area=area)
+        
+        #self.mda2 = compute_mda(mdB, precision=precision, threshold=threshold, area=area)
         
     
     def show_mda(self):
         """ Show the accumulation of minimum distances from one dataset to other.
             Use for privacy/resemblance metrics
         """
-        if self.mda1 is None:
+        if self.mda is None:
             self.compute_mda()
             
-        (xA, yA), (privacyA, resemblanceA), thresholdA = self.mda1
-        (xB, yB), (privacyB, resemblanceB), thresholdB = self.mda2
+        (xA, yA), (privacyA, resemblanceA), thresholdA = self.mda
+        #(xB, yB), (privacyB, resemblanceB), thresholdB = self.mda2
         
         # Plot A
-        print('DS1')
+        print('Nearest neighbors metric')
         plt.plot(xA, yA)
         plt.axvline(x=thresholdA, color='r', label='threshold')
         plt.xlabel('Distance d')
         plt.ylabel('Number of minimum distance < d')
-        plt.title('MDA ds1 to ds2')
+        plt.title('Symmetric MDA')
         plt.legend()
         plt.show()
         
@@ -395,17 +397,39 @@ class Comparator():
         printmd('** Resemblance: **' + str(resemblanceA))
         
         # Plot B
-        print('DS2')
-        plt.plot(xB, yB)
-        plt.axvline(x=thresholdB, color='r', label='threshold')
-        plt.xlabel('Distance d')
-        plt.ylabel('Number of minimum distance < d')
-        plt.title('MDA ds2 to ds1')
+        #print('DS2')
+        #plt.plot(xB, yB)
+        #plt.axvline(x=thresholdB, color='r', label='threshold')
+        #plt.xlabel('Distance d')
+        #plt.ylabel('Number of minimum distance < d')
+        #plt.title('MDA ds2 to ds1')
+        #plt.legend()
+        #plt.show()
+        
+        #printmd('** Privacy:** ' + str(privacyB))
+        #printmd('** Resemblance:** ' + str(resemblanceB))
+        
+        
+    def show_mda_threshold(self):
+        """ Show privacy and resemblance scores over various threshold.
+        """
+        ps = [] # privacy scores
+        rs = [] # resemblance scores
+        ts = np.arange(0.1, 1, 0.1) # thresholds
+        
+        for threshold in ts:
+            self.compute_mda(threshold=threshold)
+            (x, y), (privacy, resemblance), threshold = self.mda
+            ps.append(privacy)
+            rs.append(resemblance)
+        
+        # Plot    
+        plt.plot(ts, ps, label='privacy')
+        plt.plot(ts, rs, label='resemblance')
+        plt.ylabel('scores')
+        plt.xlabel('threshold')
         plt.legend()
         plt.show()
-        
-        printmd('** Privacy:** ' + str(privacyB))
-        printmd('** Resemblance:** ' + str(resemblanceB))
         
      
     def show_mmd(self, alpha = 0.2):
