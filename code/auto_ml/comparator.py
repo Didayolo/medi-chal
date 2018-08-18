@@ -432,3 +432,30 @@ class Comparator():
                 B1 = B.sample(frac = min_sample_num/ds2_shape[0], replace = True)
                 score = mmd(A1, B1, alpha)
                 print('Maximum mean discrepancy: ' + str(score))
+                
+         
+    def show_pca(self, processed=False, i=1, j=2, verbose=False, **kwargs):
+        """ Compute and show 2D PCA of both datasets on the same plot.
+        
+            :processed: Get processed data or not (boolean)
+            :param i: i_th component of the PCA
+            :param j: j_th component of the PCA
+            :param verbose: Display additional information during run
+            :param **kwargs: Additional parameters for PCA (see sklearn doc)
+        """
+        
+        X1 = self.get_ds1().get_data(processed=processed)
+        X2 = self.get_ds2().get_data(processed=processed)
+        
+        pca1, X1 = compute_pca(X1, verbose, **kwargs)
+        pca2, X2 = compute_pca(X2, verbose, **kwargs)
+        
+        plt.scatter(X1.T[0], X1.T[1], alpha=.8, lw=2, color='blue', label='Dataset 1')
+        plt.scatter(X2.T[0], X2.T[1], alpha=.8, lw=2, color='orange', label='Dataset 2')
+        
+        plt.legend(loc='best', shadow=False, scatterpoints=1)
+        
+        plt.xlabel('PC '+str(i))
+        plt.ylabel('PC '+str(j))
+        plt.title('Principal Component Analysis: PC{} and PC{}'.format(str(i), str(j)))
+        plt.show()

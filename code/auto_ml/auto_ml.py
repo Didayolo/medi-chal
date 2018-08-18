@@ -924,16 +924,27 @@ class AutoML():
         print('Classes distribution of {} set'.format(s))
         data = self.get_data(s, processed)
         show_classes(data)
-    
-    def show_pca(self, x='X', y='y', processed=False):
+
+    def show_pca(self, x='X', y=None, label=False, processed=False):
+        """ Show PCA
+            
+            :param label: If True, show class y with colors and legend.
+        """
         X = self.get_data(x, processed)
-        Y = self.get_data(y, processed)
-        lenx, leny = X.shape[0], Y.shape[0]
-        if lenx == leny:
-            print('Principal components analysis of {} and {} sets'.format(x, y))
-            show_pca(X, Y)
+        
+        if label==True:
+            y = 'y'
+            Y = self.get_data(y, processed)
+            lenx, leny = X.shape[0], Y.shape[0]
+            
+            if lenx == leny:
+                print('Principal components analysis of {} and {} sets'.format(x, y))
+                show_pca(X, y=Y)
+            else:
+                print('Could not show PCA because X has {} rows and Y has {} rows'.format(lenx, leny))                   
+        
         else:
-            print('Could not show PCA because X has {} rows and Y has {} rows'.format(lenx, leny))
+            show_pca(X)
         
     def show_tsne(self, x='X', y='y', processed=False):
         X = self.get_data(x, processed)

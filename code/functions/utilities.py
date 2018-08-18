@@ -364,7 +364,6 @@ def compute_pca(X, verbose=False, **kwargs):
 
     print('Explained variance ratio of the {} components: \n {}'.format(pca.n_components_, 
                                                                         pca.explained_variance_ratio_))
-
     if verbose: 
         plt.bar(left=range(pca.n_components_), 
                 height=pca.explained_variance_ratio_, 
@@ -376,7 +375,7 @@ def compute_pca(X, verbose=False, **kwargs):
     return pca, X
 
 
-def show_pca(X, y, i=1, j=2, verbose=False, **kwargs):
+def show_pca(X, y=None, i=1, j=2, verbose=False, **kwargs):
     """ 
         Plot PCA.
 
@@ -391,20 +390,27 @@ def show_pca(X, y, i=1, j=2, verbose=False, **kwargs):
 
     assert(i <= pca.n_components_ and j <= pca.n_components_ and i != j)
 
-    if isinstance(y, pd.Series) or isinstance (y, pd.DataFrame):
-        target_names = y.columns.values
-        y = y.values
+    if y is not None:
+    
+        if isinstance(y, pd.Series) or isinstance (y, pd.DataFrame):
+            target_names = y.columns.values
+            y = y.values
+        else:
+            target_names = np.unique(y)
+
+        if y.shape[1] > 1:
+            y = np.where(y==1)[1]
+
+        for label in range(len(target_names)):
+            plt.scatter(X[y == label, i-1], X[y == label, j-1], alpha=.8, lw=2, label=target_names[label])
+            
+        plt.legend(loc='best', shadow=False, scatterpoints=1)
+            
     else:
-        target_names = np.unique(y)
-
-    if y.shape[1] > 1:
-        y = np.where(y==1)[1]
-
-    for label in range(len(target_names)):
-        plt.scatter(X[y == label, i-1], X[y == label, j-1], alpha=.8, lw=2, label=target_names[label])
+        plt.scatter(X.T[0], X.T[1], alpha=.8, lw=2)
+            
     plt.xlabel('PC '+str(i))
     plt.ylabel('PC '+str(j))
-    plt.legend(loc='best', shadow=False, scatterpoints=1)
     plt.title('Principal Component Analysis: PC{} and PC{}'.format(str(i), str(j)))
     plt.show()
 
