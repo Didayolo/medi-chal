@@ -356,7 +356,7 @@ class Comparator():
             
             :param norm: 'l0', 'manhattan', 'euclidean', 'minimum', 'maximum'
             :param precision: Curve sampling rate.
-            :param threshold: Privacy/resemblance threshold distance.
+            :param threshold: Privacy/resemblance threshold distance (list to compute several for various threshold).
             :param area: 'simpson', 'trapezoidal'
         """
         # Distributions
@@ -366,11 +366,18 @@ class Comparator():
         # Distances to nearest neighbors
         mdA, mdB = minimum_distance(A, B, norm=norm)
         
+        # Compute for several theshold without re-computing distances
+        if isinstance(threshold, list) or isinstance(threshold, np.ndarray):
+            res = []
+            for t in threshold:
+                res.append(compute_mda(mdA+mdB, precision=precision, threshold=t, area=area))
+               
+            return res
+        
         # Curve and metrics
         # Symmetrize
         self.mda = compute_mda(mdA+mdB, precision=precision, threshold=threshold, area=area)
-        
-        #self.mda2 = compute_mda(mdB, precision=precision, threshold=threshold, area=area)
+        return self.mda
         
     
     def show_mda(self):
@@ -396,19 +403,6 @@ class Comparator():
         printmd('** Privacy: **' + str(privacyA))
         printmd('** Resemblance: **' + str(resemblanceA))
         
-        # Plot B
-        #print('DS2')
-        #plt.plot(xB, yB)
-        #plt.axvline(x=thresholdB, color='r', label='threshold')
-        #plt.xlabel('Distance d')
-        #plt.ylabel('Number of minimum distance < d')
-        #plt.title('MDA ds2 to ds1')
-        #plt.legend()
-        #plt.show()
-        
-        #printmd('** Privacy:** ' + str(privacyB))
-        #printmd('** Resemblance:** ' + str(resemblanceB))
-        
         
     def show_mda_threshold(self):
         """ Show privacy and resemblance scores over various threshold.
@@ -417,9 +411,9 @@ class Comparator():
         rs = [] # resemblance scores
         ts = np.arange(0.1, 1, 0.1) # thresholds
         
-        for threshold in ts:
-            self.compute_mda(threshold=threshold)
-            (x, y), (privacy, resemblance), threshold = self.mda
+        scores = self.compute_mda(threshold=ts)
+        for score in scores:
+            (x, y), (privacy, resemblance), threshold = score
             ps.append(privacy)
             rs.append(resemblance)
         
