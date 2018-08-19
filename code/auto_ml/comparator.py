@@ -350,7 +350,7 @@ class Comparator():
         display(self.comparison_matrix)
 
 
-    def compute_mda(self, norm='manhattan', precision=0.2, threshold=None, area='simpson'):
+    def compute_mda(self, norm='manhattan', precision=0.2, threshold=0.2, area='simpson'):
         """ Compute the accumulation of minimum distances from one dataset to other.
             Use for privacy/resemblance metrics.
             
@@ -474,8 +474,8 @@ class Comparator():
         pca1, X1 = compute_pca(X1, verbose, **kwargs)
         pca2, X2 = compute_pca(X2, verbose, **kwargs)
         
-        plt.scatter(X1.T[0], X1.T[1], alpha=.8, lw=2, color='blue', label='Dataset 1')
-        plt.scatter(X2.T[0], X2.T[1], alpha=.8, lw=2, color='orange', label='Dataset 2')
+        plt.scatter(X1.T[0], X1.T[1], alpha=.6, lw=2, s=1, color='blue', label='Dataset 1')
+        plt.scatter(X2.T[0], X2.T[1], alpha=.2, lw=2, s=1, color='orange', label='Dataset 2')
         
         plt.legend(loc='best', shadow=False, scatterpoints=1)
         

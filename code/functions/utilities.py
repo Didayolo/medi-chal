@@ -532,7 +532,7 @@ def minimum_distance(A, B, norm='manhattan'):
             
     return mdA, mdB
      
-def compute_mda(md, norm='manhattan', precision=0.2, threshold=0.4, area='simpson'):
+def compute_mda(md, norm='manhattan', precision=0.2, threshold=0.2, area='simpson'):
     """ Compute accumulation between minimum distances.
         Gives the y axis, useful for privacy/resemblance metrics.
         
@@ -550,7 +550,7 @@ def compute_mda(md, norm='manhattan', precision=0.2, threshold=0.4, area='simpso
     """
     mini, maxi = 0, max(max(md), 1) # min(md)
     
-    if threshold <= 0 or threshold >=1:
+    if (threshold <= 0) or (threshold >= 1):
         print('Warning: threshold must be between 0 and 1.')
     
     # x axis
