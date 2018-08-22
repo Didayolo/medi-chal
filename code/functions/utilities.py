@@ -392,14 +392,18 @@ def show_pca(X, y=None, i=1, j=2, verbose=False, **kwargs):
 
     if y is not None:
     
-        if isinstance(y, pd.Series) or isinstance (y, pd.DataFrame):
+        if isinstance (y, pd.DataFrame):
             target_names = y.columns.values
+            y = y.values
+        elif isinstance(y, pd.Series):
+            target_names = y.unique()
             y = y.values
         else:
             target_names = np.unique(y)
 
-        if y.shape[1] > 1:
-            y = np.where(y==1)[1]
+        if len(y.shape) > 1:
+            if y.shape[1] > 1:
+                y = np.where(y==1)[1]
 
         for label in range(len(target_names)):
             plt.scatter(X[y == label, i-1], X[y == label, j-1], alpha=.8, lw=2, label=target_names[label])
@@ -440,14 +444,19 @@ def show_lda(X, y, verbose=False, **kwargs):
         :param verbose: Display additional information during run
         :param **kwargs: Additional parameters for PCA (see sklearn doc)
     """
-    if isinstance(y, pd.Series) or isinstance (y, pd.DataFrame):
+    if isinstance (y, pd.DataFrame):
         target_names = y.columns.values
+        y = y.values
+    elif isinstance(y, pd.Series):
+        target_names = y.unique()
         y = y.values
     else:
         target_names = np.unique(y)
 
-    if y.shape[1] > 1:
-        y = np.where(y==1)[1]
+    # Flatten one-hot
+    if len(y.shape) > 1:
+        if y.shape[1] > 1:
+            y = np.where(y==1)[1]
     
     _, X = compute_lda(X, y, verbose=verbose, **kwargs)
 
@@ -489,8 +498,11 @@ def show_tsne(X, y, i=1, j=2, verbose=False, **kwargs):
     tsne, X = compute_tsne(X, verbose=verbose, **kwargs)
     assert(i <= tsne.embedding_.shape[1] and j <= tsne.embedding_.shape[1] and i != j)
 
-    if isinstance(y, pd.Series) or isinstance (y, pd.DataFrame):
+    if isinstance (y, pd.DataFrame):
         target_names = y.columns.values
+        y = y.values
+    elif isinstance(y, pd.Series):
+        target_names = y.unique()
         y = y.values
     else:
         target_names = np.unique(y)

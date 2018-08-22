@@ -925,8 +925,11 @@ class AutoML():
         data = self.get_data(s, processed)
         show_classes(data)
 
-    def show_pca(self, x='X', y=None, processed=False):
+    def show_pca(self, x='X', y=None, target=None, processed=False):
         """ Show PCA
+            - y if class is in AutoML format
+            - target to select a column from the DataFrame
+            - None on y and target to do PCA without classes distinction
         """
         X = self.get_data(x, processed)
         
@@ -938,14 +941,36 @@ class AutoML():
                 print('Principal components analysis of {} and {} sets'.format(x, y))
                 show_pca(X, y=Y)
             else:
-                print('Could not show PCA because X has {} rows and Y has {} rows'.format(lenx, leny))                   
+                print('Could not show PCA because X has {} rows and Y has {} rows'.format(lenx, leny))  
+                
+        elif target is not None:
+            X = self.get_data(processed=processed)
+            Y = X[target]
+            X = X.drop(target, axis=1)   
+            lenx, leny = X.shape[0], Y.shape[0]
+            
+            if lenx == leny:
+                print('Principal components analysis of {} and {} sets'.format(x, y))
+                show_pca(X, y=Y)
+            else:
+                print('Could not show PCA because X has {} rows and Y has {} rows'.format(lenx, leny))           
         
         else:
             show_pca(X)
         
-    def show_tsne(self, x='X', y='y', processed=False):
-        X = self.get_data(x, processed)
-        Y = self.get_data(y, processed)
+    def show_tsne(self, x='X', y='y', target=None, processed=False):
+        """ Show T-SNE
+            Target if you want to target a column from X
+        """
+        if target is None:
+            X = self.get_data(x, processed)
+            Y = self.get_data(y, processed)
+        
+        else:
+            X = self.get_data(processed=processed)
+            Y = X[target]
+            X = X.drop(target, axis=1)
+        
         lenx, leny = X.shape[0], Y.shape[0]
         if lenx == leny:
             print('t-distributed stochastic neighbor embedding of {} and {} sets'.format(x, y))
@@ -953,13 +978,24 @@ class AutoML():
         else:
             print('Could not show t-SNE because X has {} rows and Y has {} rows'.format(lenx, leny))
         
-    def show_lda(self, x='X', y='y', processed=False):
-        X = self.get_data(x, processed)
-        Y = self.get_data(y, processed)
+    def show_lda(self, x='X', y='y', target=None, processed=False):
+        """ Show linear discriminant analysis
+            Target if you want to target a column from X
+        """
+        if target is None:
+            X = self.get_data(x, processed)
+            Y = pd.Series(self.get_data(y, processed))
+            
+        else:
+            X = self.get_data(processed=processed)
+            Y = X[target]
+            X = X.drop(target, axis=1)
+
         lenx, leny = X.shape[0], Y.shape[0]
         if lenx == leny:
             print('Linear discriminant analysis of {} and {} sets'.format(x, y))
             show_lda(X, Y)
+            
         else:
             print('Could not show LDA because X has {} rows and Y has {} rows'.format(lenx, leny))
     

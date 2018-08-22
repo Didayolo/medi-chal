@@ -477,3 +477,98 @@ class Comparator():
         plt.ylabel('PC '+str(j))
         plt.title('Principal Component Analysis: PC{} and PC{}'.format(str(i), str(j)))
         plt.show()
+        
+        
+    def show_lda(self, target, processed=False, verbose=False, **kwargs):
+        """ Compute and show 2D LDA of both datasets on the same plot.
+        
+            :processed: Get processed data or not (boolean)
+            :param verbose: Display additional information during run
+            :param **kwargs: Additional parameters for PCA (see sklearn doc)
+        """
+        
+        X1 = self.get_ds1().get_data(processed=processed)
+        X2 = self.get_ds2().get_data(processed=processed)
+        
+        Y1 = X1[target]
+        Y2 = X2[target]
+        
+        X1.drop(target, axis=1)
+        X2.drop(target, axis=1)
+        
+        lda1, X1 = compute_lda(X1, Y1, verbose, **kwargs)
+        lda2, X2 = compute_lda(X2, Y2, verbose, **kwargs)
+        
+        plt.scatter(X1.T[0], X1.T[1], alpha=.6, lw=2, s=1, color='blue', label='Dataset 1')
+        plt.scatter(X2.T[0], X2.T[1], alpha=.2, lw=2, s=1, color='orange', label='Dataset 2')
+        
+        plt.legend(loc='best', shadow=False, scatterpoints=1)
+        
+        plt.xlabel('')
+        plt.ylabel('')
+        plt.title('LDA')
+        plt.show()
+        
+
+    def compare_marginals(self, metric='mean', processed=False, target=None):
+        """ Plot the metric for each variable from ds1 and ds2
+            Mean, standard deviation or correlation with target.
+        
+            :param metric: 'mean', 'std', 'corr'
+            :param target: column name for the target for correlation metric
+        """
+        X1 = self.get_ds1().get_data(processed=processed)
+        X2 = self.get_ds2().get_data(processed=processed)
+        
+        x = []
+        y = []
+        
+        if metric == 'mean':
+            for column in list(X1.columns):
+                x.append(X1[column].mean())
+                y.append(X2[column].mean())
+                
+        elif metric == 'std':
+            for column in list(X1.columns):
+                x.append(X1[column].std())
+                y.append(X2[column].std())
+                
+        elif metric == 'corr':  
+            if ('y' in self.get_ds1().subsets) and (target is None):
+                y1 = self.get_ds1().get_data(s='y', processed=processed)
+                y2 = self.get_ds2().get_data(s='y', processed=processed)
+            else:
+                y1 = X1[target]
+                y2 = X2[target]
+                
+            # Flatten one-hot (dirty)
+            if len(y1.shape) > 1:
+                if y1.shape[1] > 1:
+                    y1 = np.where(y1==1)[1]
+                    y1 = pd.Series(y1)
+            if len(y2.shape) > 1:
+                if y2.shape[1] > 1:
+                    y2 = np.where(y2==1)[1]
+                    y2 = pd.Series(y2)
+                
+            for column in list(X1.columns):  
+                x.append(X1[column].corr(y1))
+                y.append(X2[column].corr(y2))
+                
+        else:
+            raise OSError('{} metric is not taken in charge'.format(metric))
+                
+        plt.plot(x, y, 'bo')
+        if metric == 'mean':
+            plt.xlabel('Mean of variables if dataset 1')
+            plt.ylabel('Mean of variables if dataset 2')
+        elif metric == 'std':
+            plt.xlabel('Standard deviation of variables if dataset 1')
+            plt.ylabel('Standard deviation of variables if dataset 2')
+        elif metric == 'corr':
+            plt.xlabel('Correlation with target of variables if dataset 1')
+            plt.ylabel('Correlation with target of variables if dataset 2')            
+        else:
+            raise OSError('{} metric is not taken in charge'.format(metric))
+        
+        plt.show()
