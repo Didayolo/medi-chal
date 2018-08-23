@@ -380,7 +380,7 @@ class Comparator():
         return self.mda
         
     
-    def show_mda(self):
+    def show_mda(self, save=None):
         """ Show the accumulation of minimum distances from one dataset to other.
             Use for privacy/resemblance metrics
         """
@@ -398,13 +398,16 @@ class Comparator():
         plt.ylabel('Number of minimum distance < d')
         plt.title('Symmetric MDA')
         plt.legend()
+        
+        if save is not None:
+            plt.savefig(save)
         plt.show()
         
         printmd('** Privacy: **' + str(privacyA))
         printmd('** Resemblance: **' + str(resemblanceA))
         
         
-    def show_mda_threshold(self):
+    def show_mda_threshold(self, save=None):
         """ Show privacy and resemblance scores over various threshold.
         """
         ps = [] # privacy scores
@@ -423,6 +426,9 @@ class Comparator():
         plt.ylabel('scores')
         plt.xlabel('threshold')
         plt.legend()
+        
+        if save is not None:
+            plt.savefig(save)
         plt.show()
         
      
@@ -452,7 +458,7 @@ class Comparator():
                 print('Maximum mean discrepancy: ' + str(score))
                 
          
-    def show_pca(self, processed=False, i=1, j=2, verbose=False, **kwargs):
+    def show_pca(self, processed=False, i=1, j=2, verbose=False, save=None, label1='Dataset 1', label2='Dataset 2', size=1, **kwargs):
         """ Compute and show 2D PCA of both datasets on the same plot.
         
             :processed: Get processed data or not (boolean)
@@ -465,21 +471,30 @@ class Comparator():
         X1 = self.get_ds1().get_data(processed=processed)
         X2 = self.get_ds2().get_data(processed=processed)
         
+        # Same number of example in both dataset to plot
+        if X1.shape[0] < X2.shape[0]:
+            X2 = X2.sample(n=X1.shape[0])
+        if X1.shape[0] > X2.shape[0]:
+            X1 = X1.sample(n=X1.shape[0])
+        
         pca1, X1 = compute_pca(X1, verbose, **kwargs)
         pca2, X2 = compute_pca(X2, verbose, **kwargs)
         
-        plt.scatter(X1.T[0], X1.T[1], alpha=.6, lw=2, s=1, color='blue', label='Dataset 1')
-        plt.scatter(X2.T[0], X2.T[1], alpha=.2, lw=2, s=1, color='orange', label='Dataset 2')
+        plt.scatter(X1.T[0], X1.T[1], alpha=.9, lw=2, s=size, color='blue', marker='o', label=label1)
+        plt.scatter(X2.T[0], X2.T[1], alpha=.8, lw=2, s=size, color='orange', marker='x', label=label2)
         
         plt.legend(loc='best', shadow=False, scatterpoints=1)
         
         plt.xlabel('PC '+str(i))
         plt.ylabel('PC '+str(j))
         plt.title('Principal Component Analysis: PC{} and PC{}'.format(str(i), str(j)))
+        
+        if save is not None:
+            plt.savefig(save)
         plt.show()
         
         
-    def show_lda(self, target, processed=False, verbose=False, **kwargs):
+    def show_lda(self, target, processed=False, verbose=False, save=None, **kwargs):
         """ Compute and show 2D LDA of both datasets on the same plot.
         
             :processed: Get processed data or not (boolean)
@@ -492,7 +507,6 @@ class Comparator():
         
         Y1 = X1[target]
         Y2 = X2[target]
-        
         X1.drop(target, axis=1)
         X2.drop(target, axis=1)
         
@@ -507,33 +521,41 @@ class Comparator():
         plt.xlabel('')
         plt.ylabel('')
         plt.title('LDA')
+        
+        if save is not None:
+            plt.savefig(save)
         plt.show()
         
 
-    def compare_marginals(self, metric='mean', processed=False, target=None):
+    def compare_marginals(self, metric='all', processed=False, target=None, save=None):
         """ Plot the metric for each variable from ds1 and ds2
             Mean, standard deviation or correlation with target.
         
-            :param metric: 'mean', 'std', 'corr'
+            :param metric: 'mean', 'std', 'corr', 'all'
             :param target: column name for the target for correlation metric
         """
+        if (metric == 'all' or metric == 'corr') and target is None:
+            raise OSError('You have to define a target to use {} metric.')
+        
         X1 = self.get_ds1().get_data(processed=processed)
         X2 = self.get_ds2().get_data(processed=processed)
         
-        x = []
-        y = []
+        x_mean, y_mean = [], []
+        x_std, y_std = [], []
+        x_corr, y_corr = [], []
         
-        if metric == 'mean':
+        
+        if metric in ['mean', 'all']:
             for column in list(X1.columns):
-                x.append(X1[column].mean())
-                y.append(X2[column].mean())
+                x_mean.append(X1[column].mean())
+                y_mean.append(X2[column].mean())
                 
-        elif metric == 'std':
+        if metric in ['std', 'all']:
             for column in list(X1.columns):
-                x.append(X1[column].std())
-                y.append(X2[column].std())
+                x_std.append(X1[column].std())
+                y_std.append(X2[column].std())
                 
-        elif metric == 'corr':  
+        if metric in ['corr', 'all']:  
             if ('y' in self.get_ds1().subsets) and (target is None):
                 y1 = self.get_ds1().get_data(s='y', processed=processed)
                 y2 = self.get_ds2().get_data(s='y', processed=processed)
@@ -552,23 +574,42 @@ class Comparator():
                     y2 = pd.Series(y2)
                 
             for column in list(X1.columns):  
-                x.append(X1[column].corr(y1))
-                y.append(X2[column].corr(y2))
+                x_corr.append(X1[column].corr(y1))
+                y_corr.append(X2[column].corr(y2))
                 
-        else:
+        elif metric not in ['mean', 'std', 'corr', 'all']:
             raise OSError('{} metric is not taken in charge'.format(metric))
                 
-        plt.plot(x, y, 'bo')
         if metric == 'mean':
-            plt.xlabel('Mean of variables if dataset 1')
-            plt.ylabel('Mean of variables if dataset 2')
+            plt.plot(x_mean, y_mean, 'o', color='b')
+            plt.xlabel('Mean of variables in dataset 1')
+            plt.ylabel('Mean of variables in dataset 2')
+            
         elif metric == 'std':
-            plt.xlabel('Standard deviation of variables if dataset 1')
-            plt.ylabel('Standard deviation of variables if dataset 2')
+            plt.plot(x_std, y_std, 'o', color='g')
+            plt.xlabel('Standard deviation of variables in dataset 1')
+            plt.ylabel('Standard deviation of variables in dataset 2')
+            
         elif metric == 'corr':
-            plt.xlabel('Correlation with target of variables if dataset 1')
-            plt.ylabel('Correlation with target of variables if dataset 2')            
+            plt.plot(x_corr, y_corr, 'o', color='r')
+            plt.xlabel('Correlation with target of variables in dataset 1')
+            plt.ylabel('Correlation with target of variables in dataset 2')            
+        
+        elif metric == 'all':
+            plt.plot(x_mean, y_mean, 'o', color='b', alpha=0.9, label='Mean')
+            plt.plot(x_std, y_std, 'o', color='g', alpha=0.8, label='Standard deviation')
+            plt.plot(x_corr, y_corr, 'o', color='r', alpha=0.7, label='Correlation with target')
+            plt.xlabel('Dataset 1 variables')
+            plt.ylabel('Dataset 2 variables')
+            plt.legend(loc='upper left')
+            plt.ylim(-1, 1)
+            plt.xlim(-1, 1)            
+            
         else:
             raise OSError('{} metric is not taken in charge'.format(metric))
         
+        plt.plot([-1, 1], [-1, 1], color='grey', alpha=0.4)
+        
+        if save is not None:
+            plt.savefig(save)
         plt.show()

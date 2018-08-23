@@ -223,5 +223,5 @@ if __name__ == '__main__':
         lims, mm, npy_new = read_decoders(args.data_file[:-4], args.npy_file)
         df_converted = decode(npy_new, df_raw, lims, mm)
         # save decoded
-        df_converted.to_csv(args.data_file[:-4] + '_normal.csv',
+        df_converted.to_csv(args.npy_file[:-4] + '_normal.csv',
                             index=False)
