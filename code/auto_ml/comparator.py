@@ -350,7 +350,7 @@ class Comparator():
         display(self.comparison_matrix)
 
 
-    def compute_mda(self, norm='manhattan', precision=0.2, threshold=0.2, area='simpson'):
+    def compute_mda(self, norm='manhattan', precision=0.2, threshold=0.2, area='simpson', same_size=False):
         """ Compute the accumulation of minimum distances from one dataset to other.
             Use for privacy/resemblance metrics.
             
@@ -358,10 +358,18 @@ class Comparator():
             :param precision: Curve sampling rate.
             :param threshold: Privacy/resemblance threshold distance (list to compute several for various threshold).
             :param area: 'simpson', 'trapezoidal'
+            :param same_size: Normalize datasets to same size before computation.
         """
         # Distributions
         A = self.ds1.get_data('X', processed=True, array=True)
         B = self.ds2.get_data('X', processed=True, array=True)
+        
+        if same_size:
+            # Same number of example in both dataset to compute
+            if len(A) < len(B):
+                B = B[np.random.choice(B.shape[0], len(A), replace=False), :]
+            if len(A) > len(B):
+                A = A[np.random.choice(A.shape[0], len(B), replace=False), :]
         
         # Distances to nearest neighbors
         mdA, mdB = minimum_distance(A, B, norm=norm)
@@ -380,12 +388,12 @@ class Comparator():
         return self.mda
         
     
-    def show_mda(self, save=None):
+    def show_mda(self, save=None, same_size=False):
         """ Show the accumulation of minimum distances from one dataset to other.
             Use for privacy/resemblance metrics
         """
         if self.mda is None:
-            self.compute_mda()
+            self.compute_mda(same_size=same_size)
             
         (xA, yA), (privacyA, resemblanceA), thresholdA = self.mda
         #(xB, yB), (privacyB, resemblanceB), thresholdB = self.mda2
@@ -407,14 +415,14 @@ class Comparator():
         printmd('** Resemblance: **' + str(resemblanceA))
         
         
-    def show_mda_threshold(self, save=None):
+    def show_mda_threshold(self, save=None, same_size=False):
         """ Show privacy and resemblance scores over various threshold.
         """
         ps = [] # privacy scores
         rs = [] # resemblance scores
         ts = np.arange(0.1, 1, 0.1) # thresholds
         
-        scores = self.compute_mda(threshold=ts)
+        scores = self.compute_mda(threshold=ts, same_size=same_size)
         for score in scores:
             (x, y), (privacy, resemblance), threshold = score
             ps.append(privacy)
@@ -458,7 +466,7 @@ class Comparator():
                 print('Maximum mean discrepancy: ' + str(score))
                 
          
-    def show_pca(self, processed=False, i=1, j=2, verbose=False, save=None, label1='Dataset 1', label2='Dataset 2', size=1, **kwargs):
+    def show_pca(self, processed=False, i=1, j=2, verbose=False, save=None, label1='Dataset 1', label2='Dataset 2', size=1, alpha2=.8, **kwargs):
         """ Compute and show 2D PCA of both datasets on the same plot.
         
             :processed: Get processed data or not (boolean)
@@ -481,7 +489,7 @@ class Comparator():
         pca2, X2 = compute_pca(X2, verbose, **kwargs)
         
         plt.scatter(X1.T[0], X1.T[1], alpha=.9, lw=2, s=size, color='blue', marker='o', label=label1)
-        plt.scatter(X2.T[0], X2.T[1], alpha=.8, lw=2, s=size, color='orange', marker='x', label=label2)
+        plt.scatter(X2.T[0], X2.T[1], alpha=alpha2, lw=2, s=size, color='orange', marker='x', label=label2)
         
         plt.legend(loc='best', shadow=False, scatterpoints=1)
         
