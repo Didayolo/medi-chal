@@ -279,11 +279,12 @@ class Comparator():
                 self.comparison_matrix.at['Jensen-Shannon divergence', column] = jensen_shannon(f1, f2)
                 #self.comparison_matrix.at['Chi-square', column] = chi_square(f1, f2)
                 
-    def classify(self, clf=LogisticRegression(), processed=True):
+    def classify(self, clf=LogisticRegression(), processed=True, label1='Dataset 1', label2='Dataset 2', same_size=False):
         """ Return the scores (classification report: precision, recall, f1-score) of a classifier train on the data labeled with 0 or 1 according to their original dataset.
             
             :param clf: the classifier. It has to have fit(X,y) and score(X,y) methods.
             :param processed: If True, processed data are used.
+            :param same_size: Normalize datasets to same size before computation.
             :return: Classification report (precision, recall, f1-score).
             :rtype: str
         """
@@ -292,6 +293,13 @@ class Comparator():
         ds1_test = self.ds1.get_data('X_test', processed=True)
         ds2_train = self.ds2.get_data('X_train', processed=True)
         ds2_test = self.ds2.get_data('X_test', processed=True)
+        
+        if same_size:
+            # Same number of example in both dataset to compute
+            if ds1_train.shape[0] < ds2_train.shape[0]:
+                ds2_train = ds2_train.sample(n=ds1_train.shape[0])
+            if ds1_train.shape[0] > ds2_train.shape[0]:
+                ds1_train = ds1_train.sample(n=ds1_train.shape[0])
     
         # Train set
         X1_train, X2_train = list(ds1_train.values), list(ds2_train.values)
@@ -313,16 +321,16 @@ class Comparator():
         
         # Score
         #clf.score(X_test, y_test)
-        target_names = ['Dataset 1', 'Dataset 2']
+        target_names = [label1, label2]
         return classification_report(clf.predict(X_test), y_test, target_names=target_names)
         
-    def show_classifier_score(self, clf=LogisticRegression()):
+    def show_classifier_score(self, clf=LogisticRegression(), processed=True, label1='Dataset 1', label2='Dataset 2', same_size=False):
         """ Display the scores (classification report: precision, recall, f1-score) of a classifier train on the data labeled with 0 or 1 according to their original dataset.
             (return of 'classify' method)
             
             :param clf: the classifier. It has to have fit(X,y) and score(X,y) methods.
         """
-        report = self.classify(clf=clf) #.round(5)
+        report = self.classify(clf=clf, processed=processed, label1=label1, label2=label2, same_size=same_size) #.round(5)
         
         print(clf)
         print('\n')
