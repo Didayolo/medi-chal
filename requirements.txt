@@ -5,3 +5,9 @@ seaborn
 torch
 gensim
 joblib
+sklearn
+scipy
+notebook
+torch
+gensim
+tensorflow

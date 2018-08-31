@@ -600,16 +600,19 @@ class Comparator():
             plt.plot(x_mean, y_mean, 'o', color='b')
             plt.xlabel('Mean of variables in dataset 1')
             plt.ylabel('Mean of variables in dataset 2')
+            plt.plot([0, 1], [0, 1], color='grey', alpha=0.4)
             
         elif metric == 'std':
             plt.plot(x_std, y_std, 'o', color='g')
             plt.xlabel('Standard deviation of variables in dataset 1')
             plt.ylabel('Standard deviation of variables in dataset 2')
+            plt.plot([0, 0.4], [0, 0.4], color='grey', alpha=0.4)
             
         elif metric == 'corr':
             plt.plot(x_corr, y_corr, 'o', color='r')
             plt.xlabel('Correlation with target of variables in dataset 1')
-            plt.ylabel('Correlation with target of variables in dataset 2')            
+            plt.ylabel('Correlation with target of variables in dataset 2')  
+            plt.plot([-1, 1], [-1, 1], color='grey', alpha=0.4)            
         
         elif metric == 'all':
             plt.plot(x_mean, y_mean, 'o', color='b', alpha=0.9, label='Mean')
@@ -619,12 +622,11 @@ class Comparator():
             plt.ylabel('Dataset 2 variables')
             plt.legend(loc='upper left')
             plt.ylim(-1, 1)
-            plt.xlim(-1, 1)            
+            plt.xlim(-1, 1)  
+            plt.plot([-1, 1], [-1, 1], color='grey', alpha=0.4)          
             
         else:
-            raise OSError('{} metric is not taken in charge'.format(metric))
-        
-        plt.plot([-1, 1], [-1, 1], color='grey', alpha=0.4)
+            raise OSError('{} metric is not taken in charge'.format(metric))   
         
         if save is not None:
             plt.savefig(save)
