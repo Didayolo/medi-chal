@@ -872,19 +872,18 @@ class AutoML():
         """
         infofile = self.basename + '.info'
         filepath = os.path.join(self.input_dir, infofile)
+        
         if os.path.exists(filepath):
             print(infofile +' already exists.') 
             infofile = self.basename + '_new.info'
             filepath = os.path.join(self.input_dir, infofile)
-            print('Saving in ' + infofile)
         
         print('Saving in '+ infofile)
         f = open(filepath, 'w')
-        for k in list(self.info.keys()):
-            key = k.capitalize().replace('_', ' ')
-            value = self.info[k]
+        for key in list(self.info.keys()):
+            value = self.info[key]
             if isinstance(value, str):
-                value = value.capitalize().replace('_', ' ').replace('.', ' ')
+                value = "'" + value + "'"
 
             f.write('{}: {}'.format(key, value))
             f.write('\n')
