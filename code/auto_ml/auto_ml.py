@@ -866,6 +866,29 @@ class AutoML():
                 value = value.capitalize().replace('_', ' ').replace('.', ' ')
 
             print('{}: {}'.format(key, value))
+            
+    def save_info_file(self):
+        """ Save info in file
+        """
+        infofile = self.basename + '.info'
+        filepath = os.path.join(self.input_dir, infofile)
+        if os.path.exists(filepath):
+            print(infofile +' already exists.') 
+            infofile = self.basename + '_new.info'
+            filepath = os.path.join(self.input_dir, infofile)
+            print('Saving in ' + infofile)
+        
+        print('Saving in '+ infofile)
+        f = open(filepath, 'w')
+        for k in list(self.info.keys()):
+            key = k.capitalize().replace('_', ' ')
+            value = self.info[k]
+            if isinstance(value, str):
+                value = value.capitalize().replace('_', ' ').replace('.', ' ')
+
+            f.write('{}: {}'.format(key, value))
+            f.write('\n')
+        f.close()
           
     def show_feat_type(self):
         """ Display type of each variable (numerical, categorical, etc.)
